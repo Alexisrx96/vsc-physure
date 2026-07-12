@@ -34,7 +34,7 @@
     "compile": "tsc -p ./",
     "watch": "tsc -watch -p ./",
     "postinstall": "npm run compile",
-    "test": "tsc -p ./ && node --test out/test",
+    "test": "tsc -p ./ && node --test out/test/*.test.js",
     "package": "vsce package"
   },
   "devDependencies": {
