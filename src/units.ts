@@ -33,13 +33,24 @@ const unitsCache = new Map<string, Promise<string[]>>();
  * Returns the live unit list for `pythonPath`, caching per interpreter for
  * the session (repeated calls with the same path reuse the same in-flight
  * or resolved promise — no repeated subprocess spawns). Falls back to
- * `fallback` if the interpreter can't be queried.
+ * `fallback` if the interpreter can't be queried. On failure the cache
+ * entry is removed (not left holding the fallback) so the next call
+ * retries fresh — a fetch failure may be transient (e.g. a cold-filesystem
+ * timeout) rather than durable (e.g. measurekit not installed), and a
+ * warning is logged so a degraded autocomplete list is diagnosable.
  */
 export function getUnitsForPath(pythonPath: string, fallback: string[]): Promise<string[]> {
-    let cached = unitsCache.get(pythonPath);
-    if (!cached) {
-        cached = fetchUnitsFromInterpreter(pythonPath).catch(() => fallback);
-        unitsCache.set(pythonPath, cached);
+    const cached = unitsCache.get(pythonPath);
+    if (cached) {
+        return cached;
     }
-    return cached;
+
+    const promise = fetchUnitsFromInterpreter(pythonPath).catch((error) => {
+        unitsCache.delete(pythonPath);
+        console.warn(`vsc-measurekit: failed to fetch live unit list from ${pythonPath}, falling back to static list: ${error}`);
+        return fallback;
+    });
+
+    unitsCache.set(pythonPath, promise);
+    return promise;
 }
