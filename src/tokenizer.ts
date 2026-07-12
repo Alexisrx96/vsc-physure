@@ -35,6 +35,32 @@ export const STANDARD_UNITS = [
     'L', 'mL', 'liter', 'litre', 'gal', 'gallon'
 ];
 
+// Matches unit-symbol strings containing whitespace or the stray bracket/quote/hash
+// characters that leak through from config-parsing artifacts in the live registry query.
+const INVALID_UNIT_SYMBOL_RE = /[\s#[\]'"]/;
+
+/**
+ * Filters a raw list of unit symbol strings (e.g. from querying a live
+ * measurekit installation) down to plausible unit symbols, dropping empty
+ * strings and config-parsing artifacts. Pure function.
+ */
+export function filterValidUnitSymbols(raw: string[]): string[] {
+    return raw.filter((s) => s.length > 0 && !INVALID_UNIT_SYMBOL_RE.test(s));
+}
+
+/**
+ * Parses the JSON array of unit symbol strings printed by the Python unit
+ * query script, filtering it through filterValidUnitSymbols. Throws if the
+ * input isn't valid JSON or isn't an array of strings. Pure function.
+ */
+export function parseUnitListJson(stdout: string): string[] {
+    const parsed: unknown = JSON.parse(stdout);
+    if (!Array.isArray(parsed) || !parsed.every((x) => typeof x === 'string')) {
+        throw new Error('Expected a JSON array of strings');
+    }
+    return filterValidUnitSymbols(parsed);
+}
+
 // Regex mapping token groups from the grammar
 const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)|(?<IDENT>[a-zA-Z_][a-zA-Z0-9_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|==|=>|->|\*\*)|(?<WS>[ \t]+)|(?<BAD>.)/g;
 

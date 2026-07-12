@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { computeDiagnostics, findVariableDefinition, findAssignmentSymbols } from '../tokenizer';
+import { computeDiagnostics, findVariableDefinition, findAssignmentSymbols, filterValidUnitSymbols, parseUnitListJson } from '../tokenizer';
 
 test('computeDiagnostics: valid expression has no diagnostics', () => {
     const diagnostics = computeDiagnostics('force = 500 N');
@@ -76,4 +76,36 @@ test('findAssignmentSymbols: ignores equality assertions', () => {
     const lines = ['stress == 250 Pa'];
     const symbols = findAssignmentSymbols(lines);
     assert.deepEqual(symbols, []);
+});
+
+test('filterValidUnitSymbols: keeps clean unit symbols', () => {
+    const result = filterValidUnitSymbols(['kg', 'm/s', 'm^2', 'degC', 'µm', '°C']);
+    assert.deepEqual(result, ['kg', 'm/s', 'm^2', 'degC', 'µm', '°C']);
+});
+
+test('filterValidUnitSymbols: drops entries with whitespace or bracket/quote artifacts', () => {
+    const result = filterValidUnitSymbols(['kg', '] #', "'] #", 'bad entry', 'N']);
+    assert.deepEqual(result, ['kg', 'N']);
+});
+
+test('filterValidUnitSymbols: drops empty strings', () => {
+    const result = filterValidUnitSymbols(['kg', '', 'N']);
+    assert.deepEqual(result, ['kg', 'N']);
+});
+
+test('parseUnitListJson: parses and filters a valid JSON array', () => {
+    const result = parseUnitListJson('["kg", "] #", "N"]');
+    assert.deepEqual(result, ['kg', 'N']);
+});
+
+test('parseUnitListJson: throws on non-array JSON', () => {
+    assert.throws(() => parseUnitListJson('{"not": "an array"}'));
+});
+
+test('parseUnitListJson: throws on an array containing non-strings', () => {
+    assert.throws(() => parseUnitListJson('["kg", 5, "N"]'));
+});
+
+test('parseUnitListJson: throws on invalid JSON', () => {
+    assert.throws(() => parseUnitListJson('not json'));
 });
