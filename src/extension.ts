@@ -154,6 +154,13 @@ export function activate(context: vscode.ExtensionContext): void {
         updateDiagnostics(vscode.window.activeTextEditor.document, diagnosticCollection);
     }
 
+    // Warm the unit cache eagerly so the first hover/autocomplete doesn't block
+    // on a subprocess spawn.
+    // ponytail: only warms the interpreter resolved for the active editor at
+    // activation time; a multi-root workspace with per-file differing
+    // interpreters still pays the cache-miss cost for the others on first use.
+    getUnitsForPath(findPythonPath(vscode.window.activeTextEditor?.document.uri.fsPath), STANDARD_UNITS);
+
     context.subscriptions.push(
         vscode.workspace.onDidOpenTextDocument((doc) => updateDiagnostics(doc, diagnosticCollection))
     );
