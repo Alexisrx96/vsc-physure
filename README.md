@@ -9,6 +9,10 @@ This extension provides comprehensive native support for the **MeasureKit Meta-L
 *   **Interactive REPL Integration**:
     *   Initialize an interactive MeasureKit REPL session directly in the integrated terminal.
     *   Send the current line or selection to the REPL via keyboard shortcuts for efficient prototyping.
+*   **Real-Time Diagnostics**: Inline errors for unexpected characters and unbalanced parentheses as you type.
+*   **Unit Autocomplete**: Suggests physical units as you type, sourced live from your configured `measurekit` installation (falls back to a built-in list if the interpreter can't be queried).
+*   **Hover Documentation**: Hover a unit for a quick description, or a variable to see where it was defined.
+*   **Document Outline**: Every variable assignment shows up in the Outline view (`Ctrl+Shift+O`) for quick navigation.
 
 ## Keyboard Shortcuts ⌨️
 
