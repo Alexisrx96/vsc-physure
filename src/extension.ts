@@ -1,36 +1,20 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
-
-// List of common physical units for autocomplete suggestions
-const STANDARD_UNITS = [
-    // Base SI units
-    'm', 'kg', 's', 'A', 'K', 'mol', 'cd',
-    // Derived SI units
-    'rad', 'deg', 'sr', 'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', 'Ohm', 'S', 'Wb', 'T', 'H', 'lm', 'lx', 'Bq', 'Gy', 'Sv', 'kat',
-    // Prefixes
-    'mm', 'cm', 'dm', 'km', 'mg', 'g', 'kPa', 'MPa', 'GPa', 'mV', 'kV', 'mA', 'kW', 'MW',
-    // Imperial and other common units
-    'in', 'ft', 'yd', 'mi', 'mil', 'inch', 'feet', 'yard', 'mile',
-    'lb', 'oz', 'pound', 'ounce', 'ton',
-    'min', 'h', 'hr', 'minute', 'hour', 'day', 'year',
-    'cal', 'kcal', 'calorie', 'calories', 'Btu',
-    'degC', 'degF', 'kelvin', 'celsius', 'fahrenheit',
-    'psi', 'bar', 'atm', 'torr', 'mmHg',
-    'L', 'mL', 'liter', 'litre', 'gal', 'gallon'
-];
+import { STANDARD_UNITS, computeDiagnostics, findVariableDefinition, findAssignmentSymbols } from './tokenizer';
+import { getUnitsForPath } from './units';
 
 /**
  * Searches for the Python interpreter containing the measurekit package.
  * Traverses user configuration settings, workspace environments, and parent folders.
- * 
+ *
  * @param activeFilePath The path of the currently active document.
  * @returns Resolved path to the Python interpreter.
  */
 function findPythonPath(activeFilePath: string | undefined): string {
     const config = vscode.workspace.getConfiguration('vsc-measurekit');
     const configuredPath = config.get<string>('pythonPath');
-    
+
     // 1. Check user-configured path
     if (configuredPath && configuredPath.includes('${workspaceFolder}')) {
         const folders = vscode.workspace.workspaceFolders;
@@ -46,7 +30,7 @@ function findPythonPath(activeFilePath: string | undefined): string {
             return configuredPath;
         }
     }
-    
+
     // 2. Search workspace folders for virtualenv environments
     const folders = vscode.workspace.workspaceFolders;
     if (folders) {
@@ -66,7 +50,7 @@ function findPythonPath(activeFilePath: string | undefined): string {
             }
         }
     }
-    
+
     // 3. Traverse upwards from the active file folder
     if (activeFilePath) {
         let dir = path.dirname(activeFilePath);
@@ -91,99 +75,68 @@ function findPythonPath(activeFilePath: string | undefined): string {
             dir = parent;
         }
     }
-    
+
     // 4. Fallback to system python3/python
     return 'python3';
 }
 
 /**
  * Performs real-time syntax checking (linting) on an MKML document.
- * Underlines unexpected characters or unbalanced parentheses.
+ * Delegates token/diagnostic computation to the pure `computeDiagnostics`
+ * function and translates the results into `vscode.Diagnostic` objects.
  */
 function updateDiagnostics(document: vscode.TextDocument, collection: vscode.DiagnosticCollection): void {
     if (document.languageId !== 'mkml') {
         return;
     }
 
-    const diagnostics: vscode.Diagnostic[] = [];
-    
-    // Regex mapping token groups from the grammar
-    const tokenRe = /(?<NUMBER>\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)|(?<IDENT>[a-zA-Z_][a-zA-Z0-9_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|==|=>|->|\*\*)|(?<WS>[ \t]+)|(?<BAD>.)/g;
-
-    for (let lineIndex = 0; lineIndex < document.lineCount; lineIndex++) {
-        const line = document.lineAt(lineIndex);
-        let text = line.text;
-        
-        // Strip comment portion
-        const commentIdx = text.indexOf('#');
-        if (commentIdx !== -1) {
-            text = text.substring(0, commentIdx);
-        }
-
-        if (!text.trim()) {
-            continue;
-        }
-
-        // 1. Token Validation
-        tokenRe.lastIndex = 0;
-        let match: RegExpExecArray | null;
-        let parenDepth = 0;
-
-        while ((match = tokenRe.exec(text)) !== null) {
-            const groups = match.groups;
-            if (!groups) {
-                continue;
-            }
-
-            if (groups.BAD) {
-                const range = new vscode.Range(
-                    new vscode.Position(lineIndex, match.index),
-                    new vscode.Position(lineIndex, match.index + match[0].length)
-                );
-                const diagnostic = new vscode.Diagnostic(
-                    range,
-                    `Syntax Error: Unexpected character '${match[0]}' in expression.`,
-                    vscode.DiagnosticSeverity.Error
-                );
-                diagnostics.push(diagnostic);
-            }
-
-            if (match[0] === '(') {
-                parenDepth++;
-            } else if (match[0] === ')') {
-                parenDepth--;
-                if (parenDepth < 0) {
-                    const range = new vscode.Range(
-                        new vscode.Position(lineIndex, match.index),
-                        new vscode.Position(lineIndex, match.index + 1)
-                    );
-                    const diagnostic = new vscode.Diagnostic(
-                        range,
-                        `Syntax Error: Mismatched closing parenthesis.`,
-                        vscode.DiagnosticSeverity.Error
-                    );
-                    diagnostics.push(diagnostic);
-                    parenDepth = 0; // reset to avoid cascaded errors
-                }
-            }
-        }
-
-        // 2. Unbalanced Parentheses check at end of line
-        if (parenDepth > 0) {
-            const range = new vscode.Range(
-                new vscode.Position(lineIndex, 0),
-                new vscode.Position(lineIndex, line.text.length)
-            );
-            const diagnostic = new vscode.Diagnostic(
-                range,
-                `Syntax Error: Unbalanced parentheses. Expected closing ')'.`,
-                vscode.DiagnosticSeverity.Error
-            );
-            diagnostics.push(diagnostic);
-        }
-    }
+    const results = computeDiagnostics(document.getText());
+    const diagnostics: vscode.Diagnostic[] = results.map((d) => {
+        const range = new vscode.Range(
+            new vscode.Position(d.line, d.startChar),
+            new vscode.Position(d.line, d.endChar)
+        );
+        return new vscode.Diagnostic(range, d.message, vscode.DiagnosticSeverity.Error);
+    });
 
     collection.set(document.uri, diagnostics);
+}
+
+/**
+ * Sends `text` to `terminal` once its shell integration reports the shell is
+ * ready, falling back to a fixed delay if shell integration never fires.
+ *
+ * ponytail: shell integration isn't guaranteed on every shell/platform; the
+ * timeout fallback covers that case so the REPL still receives input either way.
+ */
+function sendTextWhenReady(terminal: vscode.Terminal, text: string): void {
+    let sent = false;
+    const disposable = vscode.window.onDidChangeTerminalShellIntegration((event) => {
+        if (!sent && event.terminal === terminal) {
+            sent = true;
+            disposable.dispose();
+            terminal.sendText(text);
+        }
+    });
+
+    setTimeout(() => {
+        if (!sent) {
+            sent = true;
+            disposable.dispose();
+            terminal.sendText(text);
+        }
+    }, 1000);
+}
+
+/**
+ * Builds a plain string array of every line in `document`.
+ */
+function documentLines(document: vscode.TextDocument): string[] {
+    const lines: string[] = [];
+    for (let i = 0; i < document.lineCount; i++) {
+        lines.push(document.lineAt(i).text);
+    }
+    return lines;
 }
 
 /**
@@ -200,7 +153,7 @@ export function activate(context: vscode.ExtensionContext): void {
     if (vscode.window.activeTextEditor) {
         updateDiagnostics(vscode.window.activeTextEditor.document, diagnosticCollection);
     }
-    
+
     context.subscriptions.push(
         vscode.workspace.onDidOpenTextDocument((doc) => updateDiagnostics(doc, diagnosticCollection))
     );
@@ -218,25 +171,25 @@ export function activate(context: vscode.ExtensionContext): void {
             vscode.window.showErrorMessage('No active text editor found.');
             return;
         }
-        
+
         const document = editor.document;
         if (document.isDirty) {
             await document.save();
         }
-        
+
         const filePath = document.uri.fsPath;
         const pythonPath = findPythonPath(filePath);
-        
+
         let terminal = vscode.window.terminals.find(t => t.name === 'MeasureKit Runner');
         if (!terminal) {
             terminal = vscode.window.createTerminal({ name: 'MeasureKit Runner' });
         }
-        
+
         terminal.show();
-        
+
         const quotedPython = pythonPath.includes(' ') ? `"${pythonPath}"` : pythonPath;
         const quotedFile = filePath.includes(' ') ? `"${filePath}"` : filePath;
-        
+
         terminal.sendText(`${quotedPython} -m measurekit < ${quotedFile}`);
     });
 
@@ -245,7 +198,7 @@ export function activate(context: vscode.ExtensionContext): void {
         const editor = vscode.window.activeTextEditor;
         const filePath = editor ? editor.document.uri.fsPath : undefined;
         const pythonPath = findPythonPath(filePath);
-        
+
         let terminal = vscode.window.terminals.find(t => t.name === 'MeasureKit REPL');
         if (!terminal) {
             terminal = vscode.window.createTerminal({ name: 'MeasureKit REPL' });
@@ -263,15 +216,15 @@ export function activate(context: vscode.ExtensionContext): void {
         if (!editor) {
             return;
         }
-        
+
         const document = editor.document;
         const selection = editor.selection;
         let textToSend = '';
-        
+
         if (selection.isEmpty) {
             const line = document.lineAt(selection.active.line);
             textToSend = line.text;
-            
+
             const nextLine = selection.active.line + 1;
             if (nextLine < document.lineCount) {
                 const nextPosition = new vscode.Position(nextLine, selection.active.character);
@@ -280,23 +233,21 @@ export function activate(context: vscode.ExtensionContext): void {
         } else {
             textToSend = document.getText(selection);
         }
-        
+
         if (!textToSend.trim()) {
             return;
         }
-        
+
         const filePath = document.uri.fsPath;
         const pythonPath = findPythonPath(filePath);
-        
+
         let terminal = vscode.window.terminals.find(t => t.name === 'MeasureKit REPL');
         if (!terminal) {
             terminal = vscode.window.createTerminal({ name: 'MeasureKit REPL' });
             terminal.show();
             const quotedPython = pythonPath.includes(' ') ? `"${pythonPath}"` : pythonPath;
             terminal.sendText(`${quotedPython} -m measurekit`);
-            setTimeout(() => {
-                terminal!.sendText(textToSend);
-            }, 1000);
+            sendTextWhenReady(terminal, textToSend);
         } else {
             terminal.show();
             terminal.sendText(textToSend);
@@ -307,13 +258,16 @@ export function activate(context: vscode.ExtensionContext): void {
     const autocompleteDisposable = vscode.languages.registerCompletionItemProvider(
         'mkml',
         {
-            provideCompletionItems(
+            async provideCompletionItems(
                 document: vscode.TextDocument,
                 position: vscode.Position,
                 token: vscode.CancellationToken,
                 context: vscode.CompletionContext
             ) {
-                return STANDARD_UNITS.map(unit => {
+                const pythonPath = findPythonPath(document.uri.fsPath);
+                const units = await getUnitsForPath(pythonPath, STANDARD_UNITS);
+
+                return units.map(unit => {
                     const item = new vscode.CompletionItem(unit, vscode.CompletionItemKind.Unit);
                     item.detail = `MeasureKit Physical Unit`;
                     item.documentation = new vscode.MarkdownString(`Dimension and value conversion component for \`${unit}\`.`);
@@ -331,30 +285,25 @@ export function activate(context: vscode.ExtensionContext): void {
                 document: vscode.TextDocument,
                 token: vscode.CancellationToken
             ): vscode.DocumentSymbol[] {
-                const symbols: vscode.DocumentSymbol[] = [];
-                // Identifies assignment statements like `variable = ...`
-                const assignRe = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=(?!=)/;
+                const lines = documentLines(document);
 
-                for (let i = 0; i < document.lineCount; i++) {
-                    const line = document.lineAt(i);
-                    const match = assignRe.exec(line.text);
-                    if (match) {
-                        const name = match[1];
-                        const range = new vscode.Range(new vscode.Position(i, 0), new vscode.Position(i, line.text.length));
-                        const selectionRange = new vscode.Range(
-                            new vscode.Position(i, line.text.indexOf(name)),
-                            new vscode.Position(i, line.text.indexOf(name) + name.length)
-                        );
-                        symbols.push(new vscode.DocumentSymbol(
-                            name,
-                            'Variable Assignment',
-                            vscode.SymbolKind.Variable,
-                            range,
-                            selectionRange
-                        ));
-                    }
-                }
-                return symbols;
+                return findAssignmentSymbols(lines).map((s) => {
+                    const range = new vscode.Range(
+                        new vscode.Position(s.line, 0),
+                        new vscode.Position(s.line, lines[s.line].length)
+                    );
+                    const selectionRange = new vscode.Range(
+                        new vscode.Position(s.line, s.startChar),
+                        new vscode.Position(s.line, s.endChar)
+                    );
+                    return new vscode.DocumentSymbol(
+                        s.name,
+                        'Variable Assignment',
+                        vscode.SymbolKind.Variable,
+                        range,
+                        selectionRange
+                    );
+                });
             }
         }
     );
@@ -363,34 +312,33 @@ export function activate(context: vscode.ExtensionContext): void {
     const hoverDisposable = vscode.languages.registerHoverProvider(
         'mkml',
         {
-            provideHover(
+            async provideHover(
                 document: vscode.TextDocument,
                 position: vscode.Position,
                 token: vscode.CancellationToken
-            ): vscode.Hover | undefined {
+            ): Promise<vscode.Hover | undefined> {
                 const range = document.getWordRangeAtPosition(position, /\b[a-zA-Z_][a-zA-Z0-9_]*\b/);
                 if (!range) {
                     return undefined;
                 }
 
                 const word = document.getText(range);
-                
+                const pythonPath = findPythonPath(document.uri.fsPath);
+                const units = await getUnitsForPath(pythonPath, STANDARD_UNITS);
+
                 // If it is a known unit, let's avoid overriding standard documentation unless needed
-                if (STANDARD_UNITS.includes(word)) {
+                if (units.includes(word)) {
                     return new vscode.Hover(new vscode.MarkdownString(`**Unit**: \`${word}\` (MeasureKit standard physical unit)`));
                 }
 
-                // Search document backwards for variable definition
-                for (let i = position.line; i >= 0; i--) {
-                    const line = document.lineAt(i);
-                    const assignRe = new RegExp(`^\\s*(${word})\\s*=(?!=)`);
-                    const match = assignRe.exec(line.text);
-                    if (match) {
-                        const markdown = new vscode.MarkdownString();
-                        markdown.appendMarkdown(`**Variable Definition**:\n`);
-                        markdown.appendCodeblock(line.text.trim(), 'mkml');
-                        return new vscode.Hover(markdown, range);
-                    }
+                const lines = documentLines(document);
+
+                const definition = findVariableDefinition(lines, word, position.line);
+                if (definition) {
+                    const markdown = new vscode.MarkdownString();
+                    markdown.appendMarkdown(`**Variable Definition**:\n`);
+                    markdown.appendCodeblock(definition.text, 'mkml');
+                    return new vscode.Hover(markdown, range);
                 }
                 return undefined;
             }
