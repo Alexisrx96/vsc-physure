@@ -20,15 +20,15 @@ This extension provides comprehensive native support for the **MeasureKit Meta-L
 ## Installation & Configuration ⚙️
 
 ### 1. Manual Installation
-To install this extension locally, create a symbolic link pointing to the extension directory inside your editor's extension folder:
+To install this extension locally, create a symbolic link pointing to the extension directory inside your editor's extension folder. Run this from inside your clone of this repo:
 
 **Linux / macOS:**
 ```bash
 # Standard VS Code / Cursor:
-ln -s PLACEHOLDER_REPO_PATH ~/.vscode/extensions/vsc-measurekit
+ln -s "$(pwd)" ~/.vscode/extensions/vsc-measurekit
 
 # VS Code OSS / VSCodium:
-ln -s PLACEHOLDER_REPO_PATH ~/.vscode-oss/extensions/vsc-measurekit
+ln -s "$(pwd)" ~/.vscode-oss/extensions/vsc-measurekit
 ```
 
 ### 2. Graphical Configuration
