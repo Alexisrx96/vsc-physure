@@ -4,441 +4,182 @@
 
 **Goal:** Get the vsc_measurekit VS Code extension (currently unpublished v0.1.0, no tests, no CI, placeholder publisher) to a state where the only remaining steps are creating the GitHub remote and running `vsce publish`.
 
-**Architecture:** Extract the VS-Code-API-free logic (tokenizer/diagnostics, hover variable lookup, outline symbol extraction) out of `src/extension.ts` into a plain `src/tokenizer.ts` module with zero `vscode` imports, so it's testable with Node's built-in test runner. `extension.ts` keeps only VS Code glue: activation, commands, providers that call into the pure functions and translate results into `vscode.*` types. Packaging metadata, `.vscodeignore`, `CHANGELOG.md`, and a CI workflow round out Marketplace readiness.
+**Architecture:** Extract the VS-Code-API-free logic (tokenizer/diagnostics, hover variable lookup, outline symbol extraction) out of `src/extension.ts` into a plain `src/tokenizer.ts` module with zero `vscode` imports, so it's testable with Node's built-in test runner. `extension.ts` keeps only VS Code glue: activation, commands, providers that call into the pure functions and translate results into `vscode.*` types. Unit autocomplete/hover data is sourced live from the configured Python interpreter's actual `measurekit` installation (via a small `src/units.ts` subprocess helper), falling back to a static list when that's unavailable. Packaging metadata, `.vscodeignore`, `CHANGELOG.md`, and a CI workflow round out Marketplace readiness.
 
 **Tech Stack:** TypeScript 5.9 (strict mode, already configured), `node:test` + `node:assert/strict` (Node stdlib, zero new runtime deps), `@vscode/vsce` (new devDependency, for packaging), GitHub Actions.
 
-Spec: `docs/superpowers/specs/2026-07-11-marketplace-publish-readiness-design.md`
+Spec: `docs/superpowers/specs/2026-07-11-marketplace-publish-readiness-design.md` (amended 2026-07-11 — see "Amendment" section at the bottom: unit data source changed from a static hardcoded list to a live query against the configured interpreter's `measurekit` installation).
 
 ---
 
 ### Task 1: package.json metadata + .gitignore
 
-**Files:**
-- Modify: `package.json` (full replacement)
-- Create: `.gitignore`
-
-- [ ] **Step 1: Replace `package.json`**
-
-```json
-{
-  "name": "vsc-measurekit",
-  "displayName": "MeasureKit (MKML) Support",
-  "description": "Syntax highlighting and REPL execution for MeasureKit Meta-Lang (.mkml) files",
-  "version": "0.1.0",
-  "publisher": "irvintorres",
-  "license": "MIT",
-  "icon": "icon.jpg",
-  "engines": {
-    "vscode": "^1.93.0"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
-  "keywords": [
-    "mkml",
-    "measurekit",
-    "physics",
-    "units",
-    "uncertainty",
-    "dsl"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/Alexisrx96/vsc-measurekit.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Alexisrx96/vsc-measurekit/issues"
-  },
-  "homepage": "https://github.com/Alexisrx96/vsc-measurekit#readme",
-  "main": "./out/extension.js",
-  "scripts": {
-    "vscode:prepublish": "npm run compile",
-    "compile": "tsc -p ./",
-    "watch": "tsc -watch -p ./",
-    "postinstall": "npm run compile",
-    "test": "tsc -p ./ && node --test out/test",
-    "package": "vsce package"
-  },
-  "devDependencies": {
-    "typescript": "^5.1.3",
-    "@types/vscode": "^1.93.0",
-    "@types/node": "^16.18.34",
-    "@vscode/vsce": "^3.9.2"
-  },
-  "contributes": {
-    "languages": [
-      {
-        "id": "mkml",
-        "aliases": ["MKML", "mkml"],
-        "extensions": [".mkml"],
-        "configuration": "./language-configuration.json",
-        "icon": {
-          "light": "./icons/file-icon.png",
-          "dark": "./icons/file-icon.png"
-        }
-      }
-    ],
-    "grammars": [
-      {
-        "language": "mkml",
-        "scopeName": "source.mkml",
-        "path": "./syntaxes/mkml.tmLanguage.json"
-      }
-    ],
-    "commands": [
-      {
-        "command": "vsc-measurekit.runFile",
-        "title": "MeasureKit: Run Current MKML File",
-        "category": "MeasureKit",
-        "icon": "$(play)"
-      },
-      {
-        "command": "vsc-measurekit.openRepl",
-        "title": "MeasureKit: Open Interactive REPL",
-        "category": "MeasureKit"
-      },
-      {
-        "command": "vsc-measurekit.sendToRepl",
-        "title": "MeasureKit: Send Selection/Line to REPL",
-        "category": "MeasureKit"
-      }
-    ],
-    "menus": {
-      "editor/title": [
-        {
-          "command": "vsc-measurekit.runFile",
-          "group": "navigation",
-          "when": "editorLangId == mkml"
-        }
-      ],
-      "editor/context": [
-        {
-          "command": "vsc-measurekit.runFile",
-          "group": "1_run",
-          "when": "editorLangId == mkml"
-        },
-        {
-          "command": "vsc-measurekit.sendToRepl",
-          "group": "1_run",
-          "when": "editorLangId == mkml"
-        }
-      ]
-    },
-    "keybindings": [
-      {
-        "command": "vsc-measurekit.runFile",
-        "key": "ctrl+alt+n",
-        "mac": "cmd+alt+n",
-        "when": "editorTextFocus && editorLangId == mkml"
-      },
-      {
-        "command": "vsc-measurekit.sendToRepl",
-        "key": "shift+enter",
-        "when": "editorTextFocus && editorLangId == mkml"
-      }
-    ],
-    "configuration": {
-      "title": "MeasureKit Meta-Lang Support",
-      "properties": {
-        "vsc-measurekit.pythonPath": {
-          "type": "string",
-          "default": "${workspaceFolder}/.venv/bin/python3",
-          "description": "Path to the Python interpreter where the measurekit library is installed. Supports the '${workspaceFolder}' environment variable.",
-          "scope": "resource"
-        }
-      }
-    }
-  },
-  "activationEvents": [
-    "onLanguage:mkml"
-  ]
-}
-```
-
-- [ ] **Step 2: Create `.gitignore`**
-
-```
-node_modules/
-out/
-*.vsix
-.vscode-test/
-```
-
-- [ ] **Step 3: Reinstall to pick up the new devDependency**
-
-Run: `npm install`
-Expected: `@vscode/vsce` and the bumped `@types/vscode` appear in `node_modules` and `package-lock.json` updates. No errors.
-
-- [ ] **Step 4: Commit**
-
-```bash
-git add package.json package-lock.json .gitignore
-git commit -m "chore: set publisher, repo metadata, and packaging devDependency"
-```
+**Status: DONE (landed in commits 6b2542d, 00a77be)**
 
 ---
 
 ### Task 2: Extract pure tokenizer/diagnostics logic with tests
 
+**Status: DONE (landed in commit 5bbdad4)**
+
+---
+
+### Task 3: Dynamic unit list from the configured interpreter
+
 **Files:**
-- Create: `src/tokenizer.ts`
-- Test: `src/test/tokenizer.test.ts`
+- Modify: `src/tokenizer.ts` (add two pure functions)
+- Modify: `src/test/tokenizer.test.ts` (add tests for them)
+- Create: `src/units.ts`
 
-- [ ] **Step 1: Write the test file**
+**Why:** `STANDARD_UNITS` in `tokenizer.ts` is a ~60-entry hardcoded guess. The real `measurekit` library registers far more unit symbols (9216, verified), and the exact set depends on what's installed/configured. Autocomplete and hover should reflect the real, live registry of whatever Python environment the user has configured — not a guess baked into the extension. Verified working query: `measurekit.get_active_system().UNIT_SYMBOL_REGISTRY` is a `dict[str, UnitDefinition]` keyed by every registered unit symbol/alias. A one-liner (`python -c "import json,measurekit; print(json.dumps(sorted(measurekit.get_active_system().UNIT_SYMBOL_REGISTRY.keys())))"`) prints them as a JSON array of strings, but the output includes a handful of garbage entries from config-parsing artifacts (e.g. literal strings like `] #` and `'] #`) that must be filtered out.
 
-Create `src/test/tokenizer.test.ts`:
+- [ ] **Step 1: Write tests for the new pure functions in `src/test/tokenizer.test.ts`**
+
+Add these tests to the existing file (keep all 13 existing tests as-is, add these below them), and add `filterValidUnitSymbols, parseUnitListJson` to the existing `import { ... } from '../tokenizer';` line:
 
 ```typescript
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { computeDiagnostics, findVariableDefinition, findAssignmentSymbols } from '../tokenizer';
-
-test('computeDiagnostics: valid expression has no diagnostics', () => {
-    const diagnostics = computeDiagnostics('force = 500 N');
-    assert.deepEqual(diagnostics, []);
+test('filterValidUnitSymbols: keeps clean unit symbols', () => {
+    const result = filterValidUnitSymbols(['kg', 'm/s', 'm^2', 'degC', 'µm', '°C']);
+    assert.deepEqual(result, ['kg', 'm/s', 'm^2', 'degC', 'µm', '°C']);
 });
 
-test('computeDiagnostics: comment-only line has no diagnostics', () => {
-    const diagnostics = computeDiagnostics('# just a comment $$$');
-    assert.deepEqual(diagnostics, []);
+test('filterValidUnitSymbols: drops entries with whitespace or bracket/quote artifacts', () => {
+    const result = filterValidUnitSymbols(['kg', '] #', "'] #", 'bad entry', 'N']);
+    assert.deepEqual(result, ['kg', 'N']);
 });
 
-test('computeDiagnostics: flags an unexpected character', () => {
-    const diagnostics = computeDiagnostics('force = 500 N $');
-    assert.equal(diagnostics.length, 1);
-    assert.match(diagnostics[0].message, /Unexpected character '\$'/);
-    assert.equal(diagnostics[0].line, 0);
+test('filterValidUnitSymbols: drops empty strings', () => {
+    const result = filterValidUnitSymbols(['kg', '', 'N']);
+    assert.deepEqual(result, ['kg', 'N']);
 });
 
-test('computeDiagnostics: flags unbalanced open parenthesis', () => {
-    const diagnostics = computeDiagnostics('stress = (force / area');
-    assert.equal(diagnostics.length, 1);
-    assert.match(diagnostics[0].message, /Unbalanced parentheses/);
+test('parseUnitListJson: parses and filters a valid JSON array', () => {
+    const result = parseUnitListJson('["kg", "] #", "N"]');
+    assert.deepEqual(result, ['kg', 'N']);
 });
 
-test('computeDiagnostics: flags mismatched closing parenthesis', () => {
-    const diagnostics = computeDiagnostics('stress = force / area)');
-    assert.equal(diagnostics.length, 1);
-    assert.match(diagnostics[0].message, /Mismatched closing parenthesis/);
+test('parseUnitListJson: throws on non-array JSON', () => {
+    assert.throws(() => parseUnitListJson('{"not": "an array"}'));
 });
 
-test('computeDiagnostics: balanced parentheses produce no diagnostics', () => {
-    const diagnostics = computeDiagnostics('stress = (force / area) * 2');
-    assert.deepEqual(diagnostics, []);
+test('parseUnitListJson: throws on an array containing non-strings', () => {
+    assert.throws(() => parseUnitListJson('["kg", 5, "N"]'));
 });
 
-test('computeDiagnostics: superscript sequence is not flagged as unexpected', () => {
-    const diagnostics = computeDiagnostics('area = 2 m²');
-    assert.deepEqual(diagnostics, []);
-});
-
-test('computeDiagnostics: reports one diagnostic per offending line, independently', () => {
-    const diagnostics = computeDiagnostics('a = 1 m\nb = 2 $\nc = (3');
-    assert.equal(diagnostics.length, 2);
-    assert.equal(diagnostics[0].line, 1);
-    assert.equal(diagnostics[1].line, 2);
-});
-
-test('findVariableDefinition: finds the most recent definition at or above the given line', () => {
-    const lines = ['force = 500 N', 'area = 2 m^2', 'stress = force / area'];
-    const result = findVariableDefinition(lines, 'force', 2);
-    assert.deepEqual(result, { line: 0, text: 'force = 500 N' });
-});
-
-test('findVariableDefinition: returns undefined when there is no definition', () => {
-    const lines = ['stress = force / area'];
-    const result = findVariableDefinition(lines, 'force', 0);
-    assert.equal(result, undefined);
-});
-
-test('findVariableDefinition: does not match an equality assertion as a definition', () => {
-    const lines = ['stress == 250 Pa'];
-    const result = findVariableDefinition(lines, 'stress', 0);
-    assert.equal(result, undefined);
-});
-
-test('findAssignmentSymbols: extracts every assignment in document order', () => {
-    const lines = ['force = 500 N', '# a comment', 'area = 2 m^2', 'stress = force / area'];
-    const symbols = findAssignmentSymbols(lines);
-    assert.deepEqual(symbols.map((s) => s.name), ['force', 'area', 'stress']);
-});
-
-test('findAssignmentSymbols: ignores equality assertions', () => {
-    const lines = ['stress == 250 Pa'];
-    const symbols = findAssignmentSymbols(lines);
-    assert.deepEqual(symbols, []);
+test('parseUnitListJson: throws on invalid JSON', () => {
+    assert.throws(() => parseUnitListJson('not json'));
 });
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
 
-Run: `npx tsc -p . && node --test out/test`
-Expected: FAIL — `tsc` reports `Cannot find module '../tokenizer'` (the module doesn't exist yet).
+Run: `npm test`
+Expected: FAIL — `tsc` reports `filterValidUnitSymbols` and `parseUnitListJson` are not exported members of `'../tokenizer'`.
 
-- [ ] **Step 3: Implement `src/tokenizer.ts`**
+- [ ] **Step 3: Add the two pure functions to `src/tokenizer.ts`**
+
+Add this below the existing `STANDARD_UNITS` export (keep everything else in the file unchanged):
 
 ```typescript
-export interface PureDiagnostic {
-    line: number;
-    startChar: number;
-    endChar: number;
-    message: string;
-}
-
-export interface VariableDefinition {
-    line: number;
-    text: string;
-}
-
-export interface SymbolMatch {
-    name: string;
-    line: number;
-    startChar: number;
-    endChar: number;
-}
-
-// List of common physical units for autocomplete suggestions and hover lookup
-export const STANDARD_UNITS = [
-    // Base SI units
-    'm', 'kg', 's', 'A', 'K', 'mol', 'cd',
-    // Derived SI units
-    'rad', 'deg', 'sr', 'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', 'Ohm', 'S', 'Wb', 'T', 'H', 'lm', 'lx', 'Bq', 'Gy', 'Sv', 'kat',
-    // Prefixes
-    'mm', 'cm', 'dm', 'km', 'mg', 'g', 'kPa', 'MPa', 'GPa', 'mV', 'kV', 'mA', 'kW', 'MW',
-    // Imperial and other common units
-    'in', 'ft', 'yd', 'mi', 'mil', 'inch', 'feet', 'yard', 'mile',
-    'lb', 'oz', 'pound', 'ounce', 'ton',
-    'min', 'h', 'hr', 'minute', 'hour', 'day', 'year',
-    'cal', 'kcal', 'calorie', 'calories', 'Btu',
-    'degC', 'degF', 'kelvin', 'celsius', 'fahrenheit',
-    'psi', 'bar', 'atm', 'torr', 'mmHg',
-    'L', 'mL', 'liter', 'litre', 'gal', 'gallon'
-];
-
-// Regex mapping token groups from the grammar
-const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE][+-]?\d+)?|\.\d+(?:[eE][+-]?\d+)?)|(?<IDENT>[a-zA-Z_][a-zA-Z0-9_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|==|=>|->|\*\*)|(?<WS>[ \t]+)|(?<BAD>.)/g;
+// Matches unit-symbol strings containing whitespace or the stray bracket/quote/hash
+// characters that leak through from config-parsing artifacts in the live registry query.
+const INVALID_UNIT_SYMBOL_RE = /[\s#[\]'"]/;
 
 /**
- * Computes syntax diagnostics for MKML source text: unexpected characters
- * and unbalanced parentheses. Pure function, no VS Code dependency.
+ * Filters a raw list of unit symbol strings (e.g. from querying a live
+ * measurekit installation) down to plausible unit symbols, dropping empty
+ * strings and config-parsing artifacts. Pure function.
  */
-export function computeDiagnostics(text: string): PureDiagnostic[] {
-    const diagnostics: PureDiagnostic[] = [];
-    const lines = text.split(/\r\n|\r|\n/);
-
-    for (let lineIndex = 0; lineIndex < lines.length; lineIndex++) {
-        let line = lines[lineIndex];
-
-        const commentIdx = line.indexOf('#');
-        if (commentIdx !== -1) {
-            line = line.substring(0, commentIdx);
-        }
-
-        if (!line.trim()) {
-            continue;
-        }
-
-        TOKEN_RE.lastIndex = 0;
-        let match: RegExpExecArray | null;
-        let parenDepth = 0;
-
-        while ((match = TOKEN_RE.exec(line)) !== null) {
-            const groups = match.groups;
-            if (!groups) {
-                continue;
-            }
-
-            if (groups.BAD) {
-                diagnostics.push({
-                    line: lineIndex,
-                    startChar: match.index,
-                    endChar: match.index + match[0].length,
-                    message: `Syntax Error: Unexpected character '${match[0]}' in expression.`,
-                });
-            }
-
-            if (match[0] === '(') {
-                parenDepth++;
-            } else if (match[0] === ')') {
-                parenDepth--;
-                if (parenDepth < 0) {
-                    diagnostics.push({
-                        line: lineIndex,
-                        startChar: match.index,
-                        endChar: match.index + 1,
-                        message: `Syntax Error: Mismatched closing parenthesis.`,
-                    });
-                    parenDepth = 0;
-                }
-            }
-        }
-
-        if (parenDepth > 0) {
-            diagnostics.push({
-                line: lineIndex,
-                startChar: 0,
-                endChar: lines[lineIndex].length,
-                message: `Syntax Error: Unbalanced parentheses. Expected closing ')'.`,
-            });
-        }
-    }
-
-    return diagnostics;
+export function filterValidUnitSymbols(raw: string[]): string[] {
+    return raw.filter((s) => s.length > 0 && !INVALID_UNIT_SYMBOL_RE.test(s));
 }
 
 /**
- * Searches backward from fromLine (inclusive) for a line assigning `word`.
- * Pure function operating on plain line strings.
+ * Parses the JSON array of unit symbol strings printed by the Python unit
+ * query script, filtering it through filterValidUnitSymbols. Throws if the
+ * input isn't valid JSON or isn't an array of strings. Pure function.
  */
-export function findVariableDefinition(lines: string[], word: string, fromLine: number): VariableDefinition | undefined {
-    for (let i = fromLine; i >= 0; i--) {
-        const line = lines[i];
-        const assignRe = new RegExp(`^\\s*(${word})\\s*=(?!=)`);
-        const match = assignRe.exec(line);
-        if (match) {
-            return { line: i, text: line.trim() };
-        }
+export function parseUnitListJson(stdout: string): string[] {
+    const parsed: unknown = JSON.parse(stdout);
+    if (!Array.isArray(parsed) || !parsed.every((x) => typeof x === 'string')) {
+        throw new Error('Expected a JSON array of strings');
     }
-    return undefined;
-}
-
-/**
- * Extracts every top-level variable assignment in document order.
- */
-export function findAssignmentSymbols(lines: string[]): SymbolMatch[] {
-    const assignRe = /^\s*([a-zA-Z_][a-zA-Z0-9_]*)\s*=(?!=)/;
-    const symbols: SymbolMatch[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const match = assignRe.exec(line);
-        if (match) {
-            const name = match[1];
-            const startChar = line.indexOf(name);
-            symbols.push({ name, line: i, startChar, endChar: startChar + name.length });
-        }
-    }
-
-    return symbols;
+    return filterValidUnitSymbols(parsed);
 }
 ```
 
 - [ ] **Step 4: Run tests to verify they pass**
 
-Run: `npx tsc -p . && node --test out/test`
-Expected: PASS — all 13 tests green, 0 failures.
+Run: `npm test`
+Expected: PASS — all 20 tests green (13 existing + 7 new), 0 failures.
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 5: Create `src/units.ts`**
+
+```typescript
+import { execFile } from 'child_process';
+import { parseUnitListJson } from './tokenizer';
+
+const UNIT_QUERY_SCRIPT =
+    'import json,measurekit; print(json.dumps(sorted(measurekit.get_active_system().UNIT_SYMBOL_REGISTRY.keys())))';
+const FETCH_TIMEOUT_MS = 5000;
+
+/**
+ * Runs the unit query script against `pythonPath` and returns the live,
+ * filtered unit symbol list. Rejects if the interpreter is missing,
+ * measurekit isn't installed, the query times out, or the output isn't
+ * parseable — callers should catch and fall back to a static list.
+ */
+export function fetchUnitsFromInterpreter(pythonPath: string): Promise<string[]> {
+    return new Promise((resolve, reject) => {
+        execFile(pythonPath, ['-c', UNIT_QUERY_SCRIPT], { timeout: FETCH_TIMEOUT_MS }, (error, stdout) => {
+            if (error) {
+                reject(error);
+                return;
+            }
+            try {
+                resolve(parseUnitListJson(stdout));
+            } catch (parseError) {
+                reject(parseError);
+            }
+        });
+    });
+}
+
+const unitsCache = new Map<string, Promise<string[]>>();
+
+/**
+ * Returns the live unit list for `pythonPath`, caching per interpreter for
+ * the session (repeated calls with the same path reuse the same in-flight
+ * or resolved promise — no repeated subprocess spawns). Falls back to
+ * `fallback` if the interpreter can't be queried.
+ */
+export function getUnitsForPath(pythonPath: string, fallback: string[]): Promise<string[]> {
+    let cached = unitsCache.get(pythonPath);
+    if (!cached) {
+        cached = fetchUnitsFromInterpreter(pythonPath).catch(() => fallback);
+        unitsCache.set(pythonPath, cached);
+    }
+    return cached;
+}
+```
+
+No dedicated test file for `src/units.ts`: `fetchUnitsFromInterpreter` and `getUnitsForPath` both do real subprocess I/O (spawning a Python interpreter), which would make unit tests either require a real `measurekit`-installed Python on the test machine (flaky, slow, environment-dependent) or introduce a mocking layer disproportionate to this file's size. This mirrors the existing precedent for `findPythonPath` in `extension.ts`, which is also untested for the same reason. The parsing/filtering logic that actually has interesting edge cases (`parseUnitListJson`, `filterValidUnitSymbols`) is pure and fully covered by the tests in Step 1 above. `src/units.ts` gets exercised by the manual smoke test in Task 8.
+
+- [ ] **Step 6: Compile to confirm `src/units.ts` type-checks**
+
+Run: `npm run compile`
+Expected: no errors.
+
+- [ ] **Step 7: Commit**
 
 ```bash
-git add src/tokenizer.ts src/test/tokenizer.test.ts
-git commit -m "test: extract tokenizer/diagnostics logic into pure, tested module"
+git add src/tokenizer.ts src/test/tokenizer.test.ts src/units.ts
+git commit -m "feat: fetch live unit list from the configured measurekit interpreter"
 ```
 
 ---
 
-### Task 3: Wire extension.ts to use the extracted tokenizer module
+### Task 4: Wire extension.ts to the tokenizer module and dynamic unit provider
 
 **Files:**
 - Modify: `src/extension.ts` (full replacement)
@@ -450,6 +191,7 @@ import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
 import { STANDARD_UNITS, computeDiagnostics, findVariableDefinition, findAssignmentSymbols } from './tokenizer';
+import { getUnitsForPath } from './units';
 
 /**
  * Searches for the Python interpreter containing the measurekit package.
@@ -576,6 +318,17 @@ function sendTextWhenReady(terminal: vscode.Terminal, text: string): void {
 }
 
 /**
+ * Builds a plain string array of every line in `document`.
+ */
+function documentLines(document: vscode.TextDocument): string[] {
+    const lines: string[] = [];
+    for (let i = 0; i < document.lineCount; i++) {
+        lines.push(document.lineAt(i).text);
+    }
+    return lines;
+}
+
+/**
  * Activates the VS Code extension and registers all language services.
  */
 export function activate(context: vscode.ExtensionContext): void {
@@ -694,13 +447,16 @@ export function activate(context: vscode.ExtensionContext): void {
     const autocompleteDisposable = vscode.languages.registerCompletionItemProvider(
         'mkml',
         {
-            provideCompletionItems(
+            async provideCompletionItems(
                 document: vscode.TextDocument,
                 position: vscode.Position,
                 token: vscode.CancellationToken,
                 context: vscode.CompletionContext
             ) {
-                return STANDARD_UNITS.map(unit => {
+                const pythonPath = findPythonPath(document.uri.fsPath);
+                const units = await getUnitsForPath(pythonPath, STANDARD_UNITS);
+
+                return units.map(unit => {
                     const item = new vscode.CompletionItem(unit, vscode.CompletionItemKind.Unit);
                     item.detail = `MeasureKit Physical Unit`;
                     item.documentation = new vscode.MarkdownString(`Dimension and value conversion component for \`${unit}\`.`);
@@ -718,10 +474,7 @@ export function activate(context: vscode.ExtensionContext): void {
                 document: vscode.TextDocument,
                 token: vscode.CancellationToken
             ): vscode.DocumentSymbol[] {
-                const lines: string[] = [];
-                for (let i = 0; i < document.lineCount; i++) {
-                    lines.push(document.lineAt(i).text);
-                }
+                const lines = documentLines(document);
 
                 return findAssignmentSymbols(lines).map((s) => {
                     const range = new vscode.Range(
@@ -748,27 +501,26 @@ export function activate(context: vscode.ExtensionContext): void {
     const hoverDisposable = vscode.languages.registerHoverProvider(
         'mkml',
         {
-            provideHover(
+            async provideHover(
                 document: vscode.TextDocument,
                 position: vscode.Position,
                 token: vscode.CancellationToken
-            ): vscode.Hover | undefined {
+            ): Promise<vscode.Hover | undefined> {
                 const range = document.getWordRangeAtPosition(position, /\b[a-zA-Z_][a-zA-Z0-9_]*\b/);
                 if (!range) {
                     return undefined;
                 }
 
                 const word = document.getText(range);
+                const pythonPath = findPythonPath(document.uri.fsPath);
+                const units = await getUnitsForPath(pythonPath, STANDARD_UNITS);
 
                 // If it is a known unit, let's avoid overriding standard documentation unless needed
-                if (STANDARD_UNITS.includes(word)) {
+                if (units.includes(word)) {
                     return new vscode.Hover(new vscode.MarkdownString(`**Unit**: \`${word}\` (MeasureKit standard physical unit)`));
                 }
 
-                const lines: string[] = [];
-                for (let i = 0; i < document.lineCount; i++) {
-                    lines.push(document.lineAt(i).text);
-                }
+                const lines = documentLines(document);
 
                 const definition = findVariableDefinition(lines, word, position.line);
                 if (definition) {
@@ -796,21 +548,23 @@ export function activate(context: vscode.ExtensionContext): void {
 export function deactivate(): void {}
 ```
 
+Note the new `documentLines()` helper: the previous version of this file had the same "loop over `document.lineCount` and push each line's text" snippet duplicated in both the outline and hover providers. Since both providers are being touched anyway in this task, this factors it out — a small, in-scope cleanup, not a new abstraction for a hypothetical future need.
+
 - [ ] **Step 2: Compile and run the test suite (regression check)**
 
 Run: `npm test`
-Expected: `tsc` compiles with no errors, all 13 tokenizer tests still PASS (extension.ts changes don't touch tested logic, but this confirms nothing broke the build).
+Expected: `tsc` compiles with no errors, all 20 tokenizer tests still PASS (extension.ts changes don't touch tested logic, but this confirms nothing broke the build).
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/extension.ts
-git commit -m "refactor: wire extension.ts to the extracted tokenizer module, fix REPL send race"
+git commit -m "refactor: wire extension.ts to tokenizer + live unit provider, fix REPL send race"
 ```
 
 ---
 
-### Task 4: Manually verify diagnostics performance (no speculative debounce)
+### Task 5: Manually verify diagnostics performance (no speculative debounce)
 
 **Files:**
 - None modified unless the manual check finds a real problem.
@@ -853,7 +607,7 @@ git commit --allow-empty -m "perf: verify diagnostics stay responsive at 5000 li
 
 ---
 
-### Task 5: .vscodeignore and CHANGELOG.md
+### Task 6: .vscodeignore and CHANGELOG.md
 
 **Files:**
 - Create: `.vscodeignore`
@@ -889,7 +643,8 @@ tsconfig.json
 - Run the current `.mkml` file via the configured Python interpreter.
 - Interactive REPL: open a session, send the current line or selection.
 - Real-time diagnostics for unexpected characters and unbalanced parentheses.
-- Autocomplete for standard physical units.
+- Autocomplete for physical units, sourced live from the configured measurekit
+  installation (falls back to a static list if the interpreter can't be queried).
 - Hover documentation for units and variable definitions.
 - Document outline (symbol) support for variable assignments.
 ```
@@ -903,7 +658,7 @@ git commit -m "docs: add CHANGELOG and .vscodeignore for packaging"
 
 ---
 
-### Task 6: CI workflow
+### Task 7: CI workflow
 
 **Files:**
 - Create: `.github/workflows/ci.yml`
@@ -941,7 +696,7 @@ git commit -m "ci: add build and test workflow"
 
 ---
 
-### Task 7: Packaging dry run
+### Task 8: Packaging dry run
 
 **Files:**
 - None modified (verification task).
@@ -958,10 +713,10 @@ Expected: succeeds, producing `vsc-measurekit-0.1.0.vsix` in the project root. `
 - [ ] **Step 2: Inspect the package contents**
 
 Run: `npx vsce ls`
-Expected output includes exactly: `package.json`, `out/extension.js`, `out/extension.js.map` (if not excluded — check against Step 1 output and remove from `.vscodeignore` if you want maps excluded), `syntaxes/mkml.tmLanguage.json`, `language-configuration.json`, `icons/file-icon.png`, `icons/file-icon.svg`, `icon.jpg`, `README.md`, `LICENSE`, `CHANGELOG.md`.
+Expected output includes exactly: `package.json`, `out/extension.js`, `out/tokenizer.js`, `out/units.js`, `out/extension.js.map` (etc. for the other two, if not excluded — check against Step 1 output and remove from `.vscodeignore` if you want maps excluded), `syntaxes/mkml.tmLanguage.json`, `language-configuration.json`, `icons/file-icon.png`, `icons/file-icon.svg`, `icon.jpg`, `README.md`, `LICENSE`, `CHANGELOG.md`.
 Expected NOT present: anything under `src/`, `docs/`, `.claude/`, `.github/`, `node_modules/`, `out/test/`.
 
-If `out/extension.js.map` appears and you want a smaller package, add `out/*.map` to `.vscodeignore`; otherwise leave it (source maps help debugging installed extensions).
+If the `.map` files appear and you want a smaller package, add `out/*.map` to `.vscodeignore`; otherwise leave them (source maps help debugging installed extensions).
 
 - [ ] **Step 3: Install and manually smoke-test the packaged .vsix**
 
@@ -971,8 +726,9 @@ In a VS Code window, open or create a `.mkml` file and verify:
 - Syntax highlighting renders (comments, numbers, units, operators, superscripts).
 - Typing `force = 500 N $` shows a red squiggle under `$` ("Unexpected character").
 - Typing `stress = (force / area` shows an "Unbalanced parentheses" diagnostic.
-- Autocomplete suggests unit names (e.g. type `k` and see `kg`, `km`, `kW`, ...).
-- Hovering a defined variable shows its definition; hovering a unit shows "MeasureKit standard physical unit".
+- **With a valid `measurekit`-installed Python interpreter configured** (`vsc-measurekit.pythonPath` pointing at a `.venv` with `measurekit` installed): autocomplete suggests unit names beyond the old static list (e.g. type a unit prefix and confirm you see units that are NOT in the hardcoded `STANDARD_UNITS` array in `tokenizer.ts`, proving the live query is actually being used, not the fallback).
+- **With no valid interpreter configured** (e.g. set `vsc-measurekit.pythonPath` to a bogus path): autocomplete still works, falling back to the static `STANDARD_UNITS` list — confirms the fallback path doesn't break the feature.
+- Hovering a defined variable shows its definition; hovering a known unit shows "MeasureKit standard physical unit".
 - The Outline view (Ctrl+Shift+O) lists variable assignments.
 - "MeasureKit: Run Current MKML File" and "MeasureKit: Open Interactive REPL" commands run without error (with `measurekit` installed in the configured Python environment).
 - `Shift+Enter` sends the current line to the REPL terminal.

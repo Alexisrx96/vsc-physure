@@ -103,3 +103,18 @@ stays manual.
   `.vsix` in a real VS Code instance, open a sample `.mkml` file, verify
   syntax highlighting, diagnostics, hover, outline, "Run Current MKML File",
   and REPL send/open all work end to end.
+
+## Amendment (2026-07-11): live unit data source
+
+During implementation, user feedback flagged that `STANDARD_UNITS` (originally
+scoped as a straight extraction of the existing ~60-entry hardcoded list) does
+not reflect the real `measurekit` library's unit registry. Changed to: query
+the configured Python interpreter's live `measurekit` installation
+(`measurekit.get_active_system().UNIT_SYMBOL_REGISTRY`) for autocomplete/hover
+data, caching per interpreter for the session, falling back to the static
+list if the interpreter can't be queried (missing, measurekit not installed,
+timeout, bad output). See the implementation plan's Task 3 for the verified
+query and exact design. This adds `src/units.ts` (untested directly, since it
+does real subprocess I/O — same rationale as `findPythonPath`) and two new
+pure, tested functions in `src/tokenizer.ts` (`filterValidUnitSymbols`,
+`parseUnitListJson`).
