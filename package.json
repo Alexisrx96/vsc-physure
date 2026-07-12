@@ -1,0 +1,113 @@
+{
+  "name": "vsc-measurekit",
+  "displayName": "MeasureKit (MKML) Support",
+  "description": "Syntax highlighting and REPL execution for MeasureKit Meta-Lang (.mkml) files",
+  "version": "0.1.0",
+  "publisher": "gemini",
+  "icon": "icon.jpg",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "main": "./out/extension.js",
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "postinstall": "npm run compile"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.3",
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^16.18.34"
+  },
+  "contributes": {
+    "languages": [
+      {
+        "id": "mkml",
+        "aliases": ["MKML", "mkml"],
+        "extensions": [".mkml"],
+        "configuration": "./language-configuration.json",
+        "icon": {
+          "light": "./icons/file-icon.png",
+          "dark": "./icons/file-icon.png"
+        }
+      }
+    ],
+    "grammars": [
+      {
+        "language": "mkml",
+        "scopeName": "source.mkml",
+        "path": "./syntaxes/mkml.tmLanguage.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "vsc-measurekit.runFile",
+        "title": "MeasureKit: Run Current MKML File",
+        "category": "MeasureKit",
+        "icon": "$(play)"
+      },
+      {
+        "command": "vsc-measurekit.openRepl",
+        "title": "MeasureKit: Open Interactive REPL",
+        "category": "MeasureKit"
+      },
+      {
+        "command": "vsc-measurekit.sendToRepl",
+        "title": "MeasureKit: Send Selection/Line to REPL",
+        "category": "MeasureKit"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "vsc-measurekit.runFile",
+          "group": "navigation",
+          "when": "editorLangId == mkml"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "vsc-measurekit.runFile",
+          "group": "1_run",
+          "when": "editorLangId == mkml"
+        },
+        {
+          "command": "vsc-measurekit.sendToRepl",
+          "group": "1_run",
+          "when": "editorLangId == mkml"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "vsc-measurekit.runFile",
+        "key": "ctrl+alt+n",
+        "mac": "cmd+alt+n",
+        "when": "editorTextFocus && editorLangId == mkml"
+      },
+      {
+        "command": "vsc-measurekit.sendToRepl",
+        "key": "shift+enter",
+        "when": "editorTextFocus && editorLangId == mkml"
+      }
+    ],
+    "configuration": {
+      "title": "MeasureKit Meta-Lang Support",
+      "properties": {
+        "vsc-measurekit.pythonPath": {
+          "type": "string",
+          "default": "${workspaceFolder}/.venv/bin/python3",
+          "description": "Path to the Python interpreter where the measurekit library is installed. Supports the '${workspaceFolder}' environment variable.",
+          "scope": "resource"
+        }
+      }
+    }
+  },
+  "activationEvents": [
+    "onLanguage:mkml"
+  ]
+}
