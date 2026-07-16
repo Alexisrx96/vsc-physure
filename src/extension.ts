@@ -42,14 +42,14 @@ export function activate(context: vscode.ExtensionContext): void {
     const initialPythonPath = findPythonPath(vscode.window.activeTextEditor?.document.uri.fsPath);
     getUnitsForPath(initialPythonPath, STANDARD_UNITS); // warm cache eagerly
 
-    if (vscode.window.activeTextEditor?.document.languageId === 'mkml') {
+    if (vscode.window.activeTextEditor?.document.languageId === 'phs') {
         refreshStatusBar(statusBar, initialPythonPath);
     }
 
-    // Refresh on every editor switch; hide when a non-MKML file is focused
+    // Refresh on every editor switch; hide when a non-PHS file is focused
     context.subscriptions.push(
         vscode.window.onDidChangeActiveTextEditor((editor) => {
-            if (editor && editor.document.languageId === 'mkml') {
+            if (editor && editor.document.languageId === 'phs') {
                 refreshStatusBar(statusBar, findPythonPath(editor.document.uri.fsPath));
             } else {
                 statusBar.hide();

@@ -22,7 +22,7 @@ export interface SymbolMatch {
     signature?: string;
 }
 
-// Built-in functions added in MKML Phase 2
+// Built-in functions added in PHS Phase 2
 export const BUILTIN_FUNCTIONS: Record<string, string> = {
     abs: 'Absolute value: `abs(x)`',
     round: 'Round quantity: `round(x[, ndigits])`',
@@ -179,7 +179,7 @@ const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE]\s*[+-]?\s*\d+)?|\.\d+(?:[eE]\s*[+-]
 
 
 /**
- * Computes syntax diagnostics for MKML source text: unexpected characters
+ * Computes syntax diagnostics for PHS source text: unexpected characters
  * and unbalanced parentheses, ignoring display-text blocks (```...```).
  * Pure function, no VS Code dependency.
  */
@@ -400,7 +400,7 @@ export interface FormatOptions {
 }
 
 /**
- * Formats MKML source code: standardizes spaces around operators, punctuation,
+ * Formats PHS source code: standardizes spaces around operators, punctuation,
  * and maintains clean indentation for multi-line function bodies. Pure function.
  */
 export function formatDocument(text: string, options: FormatOptions = {}): string {

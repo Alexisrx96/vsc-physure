@@ -27,7 +27,7 @@ export const FORMAT_SPECIFIERS: { label: string; detail: string; doc: string; in
 ];
 
 /**
- * Provides IntelliSense completion items for the MKML language.
+ * Provides IntelliSense completion items for the PHS language.
  *
  * The list is composed of format specifiers (when after `:` or `|`) or four standard layers:
  *  1. User variables / functions — sort prefix `a_`
@@ -38,7 +38,7 @@ export const FORMAT_SPECIFIERS: { label: string; detail: string; doc: string; in
 export function registerCompletionProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.languages.registerCompletionItemProvider(
-            'mkml',
+            'phs',
             {
                 async provideCompletionItems(
                     document: vscode.TextDocument,
@@ -82,7 +82,7 @@ export function registerCompletionProvider(context: vscode.ExtensionContext): vo
                         ? new vscode.SnippetString(`${sym.name}(\${1})`)
                         : sym.name;
                     const md = new vscode.MarkdownString();
-                    md.appendCodeblock(lines[sym.line].trim(), 'mkml');
+                    md.appendCodeblock(lines[sym.line].trim(), 'phs');
                     item.documentation = md;
                     item.sortText = `a_user_${sym.name}`;
                     items.push(item);
@@ -102,7 +102,7 @@ export function registerCompletionProvider(context: vscode.ExtensionContext): vo
                 // ── 3. Keywords ──────────────────────────────────────────────
                 for (const [kw, doc] of Object.entries(KEYWORDS)) {
                     const item = new vscode.CompletionItem(kw, vscode.CompletionItemKind.Keyword);
-                    item.detail = 'MKML Keyword';
+                    item.detail = 'PHS Keyword';
                     item.documentation = new vscode.MarkdownString(doc);
                     item.sortText = `m_keyword_${kw}`;
                     items.push(item);

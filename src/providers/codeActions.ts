@@ -5,7 +5,7 @@ import * as vscode from 'vscode';
  * deprecated conversion operators) and refactoring utilities (e.g. wrapping
  * mathematical expressions in built-in functions).
  */
-export class MkmlCodeActionProvider implements vscode.CodeActionProvider {
+export class PhsCodeActionProvider implements vscode.CodeActionProvider {
     public static readonly providedCodeActionKinds = [
         vscode.CodeActionKind.QuickFix,
         vscode.CodeActionKind.RefactorExtract,
@@ -76,8 +76,8 @@ export class MkmlCodeActionProvider implements vscode.CodeActionProvider {
 
 export function registerCodeActionProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerCodeActionsProvider('mkml', new MkmlCodeActionProvider(), {
-            providedCodeActionKinds: MkmlCodeActionProvider.providedCodeActionKinds,
+        vscode.languages.registerCodeActionsProvider('phs', new PhsCodeActionProvider(), {
+            providedCodeActionKinds: PhsCodeActionProvider.providedCodeActionKinds,
         })
     );
 }

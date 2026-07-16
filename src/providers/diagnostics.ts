@@ -3,13 +3,13 @@ import { computeDiagnostics } from '../tokenizer';
 
 /**
  * Translates pure `computeDiagnostics` results into `vscode.Diagnostic` objects
- * and pushes them to `collection`. Skips non-MKML documents silently.
+ * and pushes them to `collection`. Skips non-PHS documents silently.
  */
 export function updateDiagnostics(
     document: vscode.TextDocument,
     collection: vscode.DiagnosticCollection
 ): void {
-    if (document.languageId !== 'mkml') {
+    if (document.languageId !== 'phs') {
         return;
     }
 
@@ -25,12 +25,12 @@ export function updateDiagnostics(
 }
 
 /**
- * Creates the MKML diagnostic collection, runs an initial pass on the active
+ * Creates the PHS diagnostic collection, runs an initial pass on the active
  * editor (if any), and subscribes to all document lifecycle events that should
  * trigger a re-lint. Returns the collection so the caller may query or clear it.
  */
 export function registerDiagnostics(context: vscode.ExtensionContext): vscode.DiagnosticCollection {
-    const collection = vscode.languages.createDiagnosticCollection('mkml');
+    const collection = vscode.languages.createDiagnosticCollection('phs');
     context.subscriptions.push(collection);
 
     if (vscode.window.activeTextEditor) {

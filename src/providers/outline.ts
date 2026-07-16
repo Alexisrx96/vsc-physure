@@ -9,7 +9,7 @@ import { documentLines } from '../utils';
  */
 export function registerOutlineProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerDocumentSymbolProvider('mkml', {
+        vscode.languages.registerDocumentSymbolProvider('phs', {
             provideDocumentSymbols(document: vscode.TextDocument): vscode.DocumentSymbol[] {
                 const lines = documentLines(document);
 

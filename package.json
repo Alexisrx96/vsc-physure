@@ -1,7 +1,7 @@
 {
   "name": "vsc-physure",
-  "displayName": "Physure (MKML) Support",
-  "description": "Syntax highlighting and REPL execution for Physure Meta-Lang (.mkml) files",
+  "displayName": "Physure (PHS) Support",
+  "description": "Syntax highlighting and REPL execution for Physure Meta-Lang (.phs) files",
   "version": "0.2.0",
   "publisher": "irvintorres",
   "license": "MIT",
@@ -13,7 +13,7 @@
     "Programming Languages"
   ],
   "keywords": [
-    "mkml",
+    "phs",
     "physure",
     "physics",
     "units",
@@ -46,9 +46,9 @@
   "contributes": {
     "languages": [
       {
-        "id": "mkml",
-        "aliases": ["MKML", "mkml"],
-        "extensions": [".mkml"],
+        "id": "phs",
+        "aliases": ["PHS", "phs"],
+        "extensions": [".phs"],
         "configuration": "./language-configuration.json",
         "icon": {
           "light": "./icons/file-icon.png",
@@ -58,21 +58,21 @@
     ],
     "grammars": [
       {
-        "language": "mkml",
-        "scopeName": "source.mkml",
-        "path": "./syntaxes/mkml.tmLanguage.json"
+        "language": "phs",
+        "scopeName": "source.phs",
+        "path": "./syntaxes/phs.tmLanguage.json"
       }
     ],
     "snippets": [
       {
-        "language": "mkml",
-        "path": "./snippets/mkml.json"
+        "language": "phs",
+        "path": "./snippets/phs.json"
       }
     ],
     "commands": [
       {
         "command": "vsc-physure.runFile",
-        "title": "Physure: Run Current MKML File",
+        "title": "Physure: Run Current PHS File",
         "category": "Physure",
         "icon": "$(play)"
       },
@@ -128,39 +128,39 @@
         {
           "command": "vsc-physure.runFile",
           "group": "navigation",
-          "when": "editorLangId == mkml"
+          "when": "editorLangId == phs"
         }
       ],
       "editor/context": [
         {
           "command": "vsc-physure.runFile",
           "group": "1_run",
-          "when": "editorLangId == mkml"
+          "when": "editorLangId == phs"
         },
         {
           "command": "vsc-physure.sendToRepl",
           "group": "1_run",
-          "when": "editorLangId == mkml"
+          "when": "editorLangId == phs"
         },
         {
           "command": "vsc-physure.restartRepl",
           "group": "1_run",
-          "when": "editorLangId == mkml"
+          "when": "editorLangId == phs"
         },
         {
           "command": "vsc-physure.exportToPython",
           "group": "2_export",
-          "when": "editorLangId == mkml"
+          "when": "editorLangId == phs"
         },
         {
           "command": "vsc-physure.exportToMarkdown",
           "group": "2_export",
-          "when": "editorLangId == mkml"
+          "when": "editorLangId == phs"
         },
         {
           "command": "vsc-physure.selectInterpreter",
-          "group": "3_mkml",
-          "when": "editorLangId == mkml"
+          "group": "3_phs",
+          "when": "editorLangId == phs"
         }
       ]
     },
@@ -169,17 +169,17 @@
         "command": "vsc-physure.runFile",
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n",
-        "when": "editorTextFocus && editorLangId == mkml"
+        "when": "editorTextFocus && editorLangId == phs"
       },
       {
         "command": "vsc-physure.runFile",
         "key": "f5",
-        "when": "editorTextFocus && editorLangId == mkml"
+        "when": "editorTextFocus && editorLangId == phs"
       },
       {
         "command": "vsc-physure.sendToRepl",
         "key": "shift+enter",
-        "when": "editorTextFocus && editorLangId == mkml"
+        "when": "editorTextFocus && editorLangId == phs"
       }
     ],
     "configuration": {
@@ -195,6 +195,6 @@
     }
   },
   "activationEvents": [
-    "onLanguage:mkml"
+    "onLanguage:phs"
   ]
 }

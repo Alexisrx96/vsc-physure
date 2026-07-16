@@ -7,7 +7,7 @@
   "Function Definition": {
     "prefix": ["fn", "mkfn", "def"],
     "body": ["${1:name}(${2:params}) =", "\t${3:expression}"],
-    "description": "Define a MKML function"
+    "description": "Define a PHS function"
   },
   "Unit Conversion": {
     "prefix": ["conv", "=>"],

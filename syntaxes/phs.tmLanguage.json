@@ -1,6 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
-  "name": "MKML",
+  "name": "PHS",
   "patterns": [
     {
       "include": "#text-blocks"
@@ -59,7 +59,7 @@
     "text-blocks": {
       "patterns": [
         {
-          "name": "markup.raw.block.markdown.mkml",
+          "name": "markup.raw.block.markdown.phs",
           "begin": "```",
           "end": "```"
         }
@@ -68,7 +68,7 @@
     "comments": {
       "patterns": [
         {
-          "name": "comment.line.number-sign.mkml",
+          "name": "comment.line.number-sign.phs",
           "match": "#.*$"
         }
       ]
@@ -76,7 +76,7 @@
     "keywords": {
       "patterns": [
         {
-          "name": "keyword.control.mkml",
+          "name": "keyword.control.phs",
           "match": "\\b(let|in)\\b"
         }
       ]
@@ -84,7 +84,7 @@
     "builtin-functions": {
       "patterns": [
         {
-          "name": "support.function.builtin.mkml",
+          "name": "support.function.builtin.phs",
           "match": "\\b(abs|round|floor|ceil|min|max|sqrt|sin|cos|tan|exp|log|ln)\\b(?=\\s*\\()"
         }
       ]
@@ -95,10 +95,10 @@
           "match": "(=>|->|<=>|⇌)\\s*([\\p{L}_][\\p{L}\\p{N}_\\*/\\^\\+-]*)",
           "captures": {
             "1": {
-              "name": "keyword.operator.conversion.mkml"
+              "name": "keyword.operator.conversion.phs"
             },
             "2": {
-              "name": "entity.name.type.class.mkml"
+              "name": "entity.name.type.class.phs"
             }
           }
         }
@@ -110,10 +110,10 @@
           "match": "(:)\\s*([\\.\\p{L}\\p{N}_\\|]+)(?=\\s*\\?|\\s*$|\\s*#)",
           "captures": {
             "1": {
-              "name": "punctuation.separator.delimiter.format.mkml"
+              "name": "punctuation.separator.delimiter.format.phs"
             },
             "2": {
-              "name": "storage.modifier.format.mkml"
+              "name": "storage.modifier.format.phs"
             }
           }
         }
@@ -123,7 +123,7 @@
     "uncertainty-operator": {
       "patterns": [
         {
-          "name": "keyword.operator.uncertainty.mkml",
+          "name": "keyword.operator.uncertainty.phs",
           "match": "\\+/-|±"
         }
       ]
@@ -131,7 +131,7 @@
     "comparison-operator": {
       "patterns": [
         {
-          "name": "keyword.operator.comparison.mkml",
+          "name": "keyword.operator.comparison.phs",
           "match": "=="
         }
       ]
@@ -142,13 +142,13 @@
           "match": "^[ \\t]*([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(\\([^\\)]*\\))\\s*(=)(?!=)",
           "captures": {
             "1": {
-              "name": "entity.name.function.mkml"
+              "name": "entity.name.function.phs"
             },
             "2": {
-              "name": "variable.parameter.mkml"
+              "name": "variable.parameter.phs"
             },
             "3": {
-              "name": "keyword.operator.assignment.mkml"
+              "name": "keyword.operator.assignment.phs"
             }
           }
         }
@@ -160,10 +160,10 @@
           "match": "^[ \\t]*([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(=)(?!=)",
           "captures": {
             "1": {
-              "name": "variable.other.assignment.mkml"
+              "name": "variable.other.assignment.phs"
             },
             "2": {
-              "name": "keyword.operator.assignment.mkml"
+              "name": "keyword.operator.assignment.phs"
             }
           }
         }
@@ -172,12 +172,12 @@
     "operators": {
       "patterns": [
         {
-          "name": "keyword.operator.arithmetic.mkml",
+          "name": "keyword.operator.arithmetic.phs",
           "match": "\\*\\*|\\+|-|\\*|/|\\^|=|×|÷|√|\\|"
 
         },
         {
-          "name": "keyword.operator.query.mkml",
+          "name": "keyword.operator.query.phs",
           "match": "\\?"
         }
       ]
@@ -185,7 +185,7 @@
     "punctuation": {
       "patterns": [
         {
-          "name": "punctuation.separator.delimiter.mkml",
+          "name": "punctuation.separator.delimiter.phs",
           "match": "[,:]"
         }
       ]
@@ -193,11 +193,11 @@
     "numbers": {
       "patterns": [
         {
-          "name": "constant.numeric.float.mkml",
+          "name": "constant.numeric.float.phs",
           "match": "\\b\\d+\\.\\d*(?:[eE][+-]?\\d+)?\\b|\\b\\.\\d+(?:[eE][+-]?\\d+)?\\b"
         },
         {
-          "name": "constant.numeric.integer.mkml",
+          "name": "constant.numeric.integer.phs",
           "match": "\\b\\d+(?:[eE][+-]?\\d+)?\\b"
         }
       ]
@@ -208,7 +208,7 @@
           "match": "(?<=\\b\\d|\\b\\d\\.\\d|\\b\\d\\.)\\s*([\\p{L}_][\\p{L}\\p{N}_]*)\\b",
           "captures": {
             "1": {
-              "name": "entity.name.type.class.mkml"
+              "name": "entity.name.type.class.phs"
             }
           }
         }
@@ -217,7 +217,7 @@
     "superscripts": {
       "patterns": [
         {
-          "name": "string.unquoted.superscript.mkml",
+          "name": "string.unquoted.superscript.phs",
           "match": "[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+"
         }
       ]
@@ -225,7 +225,7 @@
     "subscripts": {
       "patterns": [
         {
-          "name": "constant.numeric.subscript.mkml",
+          "name": "constant.numeric.subscript.phs",
           "match": "[₀₁₂₃₄₅₆₇₈₉₋]+"
         }
       ]
@@ -233,11 +233,11 @@
     "identifiers": {
       "patterns": [
         {
-          "name": "variable.other.readwrite.mkml",
+          "name": "variable.other.readwrite.phs",
           "match": "\\b[\\p{L}_][\\p{L}\\p{N}_]*\\b"
         }
       ]
     }
   },
-  "scopeName": "source.mkml"
+  "scopeName": "source.phs"
 }

@@ -10,11 +10,11 @@ interface LineResult {
 const documentResultsMap = new Map<string, LineResult[]>();
 const onCodeLensChangeEvent = new vscode.EventEmitter<void>();
 
-export class MkmlCodeLensProvider implements vscode.CodeLensProvider {
+export class PhsCodeLensProvider implements vscode.CodeLensProvider {
     public readonly onDidChangeCodeLenses: vscode.Event<void> = onCodeLensChangeEvent.event;
 
     public provideCodeLenses(document: vscode.TextDocument): vscode.CodeLens[] {
-        if (document.languageId !== 'mkml') {
+        if (document.languageId !== 'phs') {
             return [];
         }
 
@@ -59,8 +59,8 @@ export class MkmlCodeLensProvider implements vscode.CodeLensProvider {
 }
 
 export function registerCodeLensProvider(context: vscode.ExtensionContext): void {
-    const provider = new MkmlCodeLensProvider();
-    context.subscriptions.push(vscode.languages.registerCodeLensProvider('mkml', provider));
+    const provider = new PhsCodeLensProvider();
+    context.subscriptions.push(vscode.languages.registerCodeLensProvider('phs', provider));
 
     // Register Evaluate command
     context.subscriptions.push(

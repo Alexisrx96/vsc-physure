@@ -10,7 +10,7 @@ const WORD_RE = /[\p{L}_][\p{L}\p{N}_]*/u;
  */
 export function registerReferencesProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerReferenceProvider('mkml', {
+        vscode.languages.registerReferenceProvider('phs', {
             provideReferences(
                 document: vscode.TextDocument,
                 position: vscode.Position
@@ -44,7 +44,7 @@ export function registerReferencesProvider(context: vscode.ExtensionContext): vo
  */
 export function registerRenameProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerRenameProvider('mkml', {
+        vscode.languages.registerRenameProvider('phs', {
             prepareRename(
                 document: vscode.TextDocument,
                 position: vscode.Position

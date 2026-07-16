@@ -1,11 +1,11 @@
-# Physure (MKML) VS Code Extension 🚀
+# Physure (PHS) VS Code Extension 🚀
 
-This extension provides comprehensive native support for the **Physure Meta-Lang (MKML)** (.mkml) syntax in Visual Studio Code, Cursor, and related VS Code forks.
+This extension provides comprehensive native support for the **Physure Meta-Lang (PHS)** (.phs) syntax in Visual Studio Code, Cursor, and related VS Code forks.
 
 ## Features ✨
 
 *   **Robust Syntax Highlighting**: Semantic coloring for comments (`#`), numbers, physical units, conversion operators (`=>` / `->`), assertions (`==`), uncertainties (`+/-` or `±`), variables, and superscripts (exponents).
-*   **Rapid File Execution**: Run the active `.mkml` file using the configured Python virtual environment.
+*   **Rapid File Execution**: Run the active `.phs` file using the configured Python virtual environment.
 *   **Interactive REPL Integration**:
     *   Initialize an interactive Physure REPL session directly in the integrated terminal.
     *   Send the current line or selection to the REPL via keyboard shortcuts for efficient prototyping.
@@ -18,7 +18,7 @@ This extension provides comprehensive native support for the **Physure Meta-Lang
 
 | Action | Shortcut (Linux/Windows) | Shortcut (macOS) |
 |---|---|---|
-| **Run Current MKML File** | `F5` or `Ctrl + Alt + N` | `F5` or `Cmd + Alt + N` |
+| **Run Current PHS File** | `F5` or `Ctrl + Alt + N` | `F5` or `Cmd + Alt + N` |
 | **Send Line/Selection to REPL** | `Shift + Enter` | `Shift + Enter` |
 
 ## Installation & Configuration ⚙️

@@ -11,7 +11,7 @@ import { documentLines } from '../utils';
  */
 export function registerInlayHintsProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerInlayHintsProvider('mkml', {
+        vscode.languages.registerInlayHintsProvider('phs', {
             provideInlayHints(
                 document: vscode.TextDocument,
                 range: vscode.Range
@@ -31,7 +31,7 @@ export function registerInlayHintsProvider(context: vscode.ExtensionContext): vo
                     if (lineText.includes('=>') || lineText.endsWith('?') || lineText.includes('==')) {
                         const position = new vscode.Position(i, lines[i].length);
                         const hint = new vscode.InlayHint(position, '  ⚡', vscode.InlayHintKind.Type);
-                        hint.tooltip = new vscode.MarkdownString('Live MKML expression evaluation result');
+                        hint.tooltip = new vscode.MarkdownString('Live PHS expression evaluation result');
                         hints.push(hint);
                     }
                 }

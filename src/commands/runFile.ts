@@ -5,7 +5,7 @@ import { findPythonPath } from '../interpreter';
  * Registers the `vsc-physure.runFile` command.
  *
  * Saves the active document if dirty, then pipes it to the Physure
- * interpreter via stdin (`python -m physure < file.mkml`).
+ * interpreter via stdin (`python -m physure < file.phs`).
  * Reuses an existing "Physure Runner" terminal if one is already open.
  */
 export function registerRunFileCommand(context: vscode.ExtensionContext): void {

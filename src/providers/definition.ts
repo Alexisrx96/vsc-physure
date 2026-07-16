@@ -10,7 +10,7 @@ import { documentLines } from '../utils';
  */
 export function registerDefinitionProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerDefinitionProvider('mkml', {
+        vscode.languages.registerDefinitionProvider('phs', {
             provideDefinition(
                 document: vscode.TextDocument,
                 position: vscode.Position

@@ -14,7 +14,7 @@ import { findPythonPath } from '../interpreter';
 import { documentLines } from '../utils';
 
 /**
- * Provides on-hover documentation for every token class in MKML.
+ * Provides on-hover documentation for every token class in PHS.
  *
  * Priority (first match wins):
  *  0. Format specifier modifier — description of format flags (: .2f|base)
@@ -26,7 +26,7 @@ import { documentLines } from '../utils';
  */
 export function registerHoverProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerHoverProvider('mkml', {
+        vscode.languages.registerHoverProvider('phs', {
             async provideHover(
                 document: vscode.TextDocument,
                 position: vscode.Position
@@ -47,7 +47,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
                     const colonIdx = lineText.indexOf(':');
                     const rawSpec = lineText.substring(colonIdx + 1).replace(/\?/g, '').trim();
                     const md = new vscode.MarkdownString();
-                    md.appendMarkdown(`**MKML Format Specifier**: \`${rawSpec}\`\n\n`);
+                    md.appendMarkdown(`**PHS Format Specifier**: \`${rawSpec}\`\n\n`);
                     md.appendMarkdown('Controls presentation output formatting:\n\n');
 
                     if (rawSpec.includes('base') || rawSpec.includes('raw') || rawSpec.includes('expand')) {
@@ -80,7 +80,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
                     const md = new vscode.MarkdownString();
                     md.appendMarkdown(`**Built-in Function**: \`${word}\`\n\n`);
                     if (sig) {
-                        md.appendCodeblock(sig.label, 'mkml');
+                        md.appendCodeblock(sig.label, 'phs');
                         md.appendMarkdown(`\n${sig.documentation}`);
                         if (sig.parameters.length > 0) {
                             md.appendMarkdown('\n\n**Parameters:**\n');
@@ -97,7 +97,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
                 // ── 2. Keyword ────────────────────────────────────────────────
                 if (KEYWORDS[word]) {
                     const md = new vscode.MarkdownString();
-                    md.appendMarkdown(`**MKML Keyword**: \`${word}\`\n\n`);
+                    md.appendMarkdown(`**PHS Keyword**: \`${word}\`\n\n`);
                     md.appendMarkdown(KEYWORDS[word]);
                     return new vscode.Hover(md, range);
                 }
@@ -137,7 +137,7 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
                         `${definition.isFunction ? '**Function Definition**' : '**Variable Definition**'}: ` +
                         `*(line ${definition.line + 1})*\n`
                     );
-                    md.appendCodeblock(definition.text, 'mkml');
+                    md.appendCodeblock(definition.text, 'phs');
                     return new vscode.Hover(md, range);
                 }
 

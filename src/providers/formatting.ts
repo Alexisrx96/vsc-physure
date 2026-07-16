@@ -7,7 +7,7 @@ import { formatDocument } from '../tokenizer';
  */
 export function registerFormattingProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
-        vscode.languages.registerDocumentFormattingEditProvider('mkml', {
+        vscode.languages.registerDocumentFormattingEditProvider('phs', {
             provideDocumentFormattingEdits(
                 document: vscode.TextDocument,
                 options: vscode.FormattingOptions

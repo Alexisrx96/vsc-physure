@@ -12,7 +12,7 @@ import { documentLines } from '../utils';
 export function registerSignatureHelpProvider(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.languages.registerSignatureHelpProvider(
-            'mkml',
+            'phs',
             {
                 provideSignatureHelp(
                     document: vscode.TextDocument,

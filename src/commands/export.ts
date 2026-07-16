@@ -1,9 +1,9 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
-import { transpiledMkmlToPython, mkmlToMarkdownReport } from '../exporter';
+import { transpiledPhsToPython, phsToMarkdownReport } from '../exporter';
 
 /**
- * Registers commands to export MKML files to Python scripts and Markdown reports.
+ * Registers commands to export PHS files to Python scripts and Markdown reports.
  */
 export function registerExportCommands(context: vscode.ExtensionContext): void {
     // Export to Python
@@ -16,7 +16,7 @@ export function registerExportCommands(context: vscode.ExtensionContext): void {
             }
 
             const doc = editor.document;
-            const pythonContent = transpiledMkmlToPython(doc.getText());
+            const pythonContent = transpiledPhsToPython(doc.getText());
             const pyDoc = await vscode.workspace.openTextDocument({
                 language: 'python',
                 content: pythonContent,
@@ -38,7 +38,7 @@ export function registerExportCommands(context: vscode.ExtensionContext): void {
 
             const doc = editor.document;
             const fileName = path.basename(doc.fileName);
-            const mdContent = mkmlToMarkdownReport(fileName, doc.getText());
+            const mdContent = phsToMarkdownReport(fileName, doc.getText());
             const mdDoc = await vscode.workspace.openTextDocument({
                 language: 'markdown',
                 content: mdContent,
