@@ -1,0 +1,72 @@
+{
+  "Variable Assignment": {
+    "prefix": ["var", "mkvar"],
+    "body": "${1:name} = ${2:value} ${3:unit}",
+    "description": "Assign a variable with a value and unit"
+  },
+  "Function Definition": {
+    "prefix": ["fn", "mkfn", "def"],
+    "body": ["${1:name}(${2:params}) =", "\t${3:expression}"],
+    "description": "Define a MKML function"
+  },
+  "Unit Conversion": {
+    "prefix": ["conv", "=>"],
+    "body": "${1:value} ${2:unit} => ${3:target_unit}",
+    "description": "Convert a value to another unit"
+  },
+  "Bidirectional Conversion": {
+    "prefix": ["biconv", "<=>"],
+    "body": "${1:expr} <=> ${2:unit}",
+    "description": "Bidirectional unit conversion (⇌)"
+  },
+  "Value with Uncertainty": {
+    "prefix": ["unc", "uncertain", "pm"],
+    "body": "${1:name} = ${2:value} +/- ${3:uncertainty} ${4:unit}",
+    "description": "Define a value with measurement uncertainty"
+  },
+  "Assertion / Check": {
+    "prefix": ["assert", "check", "eq"],
+    "body": "${1:expr1} == ${2:expr2}",
+    "description": "Assert two expressions are physically equal"
+  },
+  "Query / Print": {
+    "prefix": ["q", "query", "print"],
+    "body": "${1:expression}?",
+    "description": "Query / print the value of an expression"
+  },
+  "Text Block": {
+    "prefix": ["block", "text", "md"],
+    "body": ["```", "${1:Write your description here...}", "```"],
+    "description": "Insert a display text block (Markdown-like)"
+  },
+  "Let Expression": {
+    "prefix": ["let", "letexpr", "local"],
+    "body": "let ${1:var} = ${2:expr1} in ${3:expr2}",
+    "description": "Local variable binding (valid inside function bodies)"
+  },
+  "Comment Section Header": {
+    "prefix": ["section", "header"],
+    "body": "# ── ${1:Section Title} ──────────────────────────────────",
+    "description": "Insert a styled section comment"
+  },
+  "Physical Constant": {
+    "prefix": ["const", "constant"],
+    "body": "${1:name} = ${2:value} ${3:unit}  # ${4:Description}",
+    "description": "Define a named physical constant with inline comment"
+  },
+  "Conversion Chain": {
+    "prefix": ["chain"],
+    "body": "${1:value} ${2:unit1} => ${3:unit2} => ${4:unit3}",
+    "description": "Chain multiple sequential unit conversions"
+  },
+  "Force Calculation": {
+    "prefix": ["force", "Fma"],
+    "body": ["# Newton's second law: F = m·a", "${1:F} = ${2:mass} kg * ${3:accel} m/s^2"],
+    "description": "F = m·a template"
+  },
+  "Energy Calculation": {
+    "prefix": ["energy", "Emv2"],
+    "body": ["# Kinetic energy: E = ½mv²", "${1:E} = 0.5 * ${2:mass} kg * (${3:velocity} m/s)^2"],
+    "description": "Kinetic energy template"
+  }
+}

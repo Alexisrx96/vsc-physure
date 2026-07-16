@@ -1,8 +1,8 @@
 {
-  "name": "vsc-measurekit",
-  "displayName": "MeasureKit (MKML) Support",
-  "description": "Syntax highlighting and REPL execution for MeasureKit Meta-Lang (.mkml) files",
-  "version": "0.1.0",
+  "name": "vsc-physure",
+  "displayName": "Physure (MKML) Support",
+  "description": "Syntax highlighting and REPL execution for Physure Meta-Lang (.mkml) files",
+  "version": "0.2.0",
   "publisher": "irvintorres",
   "license": "MIT",
   "icon": "icon.jpg",
@@ -14,7 +14,7 @@
   ],
   "keywords": [
     "mkml",
-    "measurekit",
+    "physure",
     "physics",
     "units",
     "uncertainty",
@@ -22,12 +22,12 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/Alexisrx96/vsc-measurekit.git"
+    "url": "https://github.com/Alexisrx96/vsc-physure.git"
   },
   "bugs": {
-    "url": "https://github.com/Alexisrx96/vsc-measurekit/issues"
+    "url": "https://github.com/Alexisrx96/vsc-physure/issues"
   },
-  "homepage": "https://github.com/Alexisrx96/vsc-measurekit#readme",
+  "homepage": "https://github.com/Alexisrx96/vsc-physure#readme",
   "main": "./out/extension.js",
   "scripts": {
     "vscode:prepublish": "npm run compile",
@@ -63,65 +63,132 @@
         "path": "./syntaxes/mkml.tmLanguage.json"
       }
     ],
+    "snippets": [
+      {
+        "language": "mkml",
+        "path": "./snippets/mkml.json"
+      }
+    ],
     "commands": [
       {
-        "command": "vsc-measurekit.runFile",
-        "title": "MeasureKit: Run Current MKML File",
-        "category": "MeasureKit",
+        "command": "vsc-physure.runFile",
+        "title": "Physure: Run Current MKML File",
+        "category": "Physure",
         "icon": "$(play)"
       },
       {
-        "command": "vsc-measurekit.openRepl",
-        "title": "MeasureKit: Open Interactive REPL",
-        "category": "MeasureKit"
+        "command": "vsc-physure.openRepl",
+        "title": "Physure: Open Interactive REPL",
+        "category": "Physure"
       },
       {
-        "command": "vsc-measurekit.sendToRepl",
-        "title": "MeasureKit: Send Selection/Line to REPL",
-        "category": "MeasureKit"
+        "command": "vsc-physure.sendToRepl",
+        "title": "Physure: Send Selection/Line to REPL",
+        "category": "Physure"
+      },
+      {
+        "command": "vsc-physure.restartRepl",
+        "title": "Physure: Restart REPL",
+        "category": "Physure",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "vsc-physure.selectInterpreter",
+        "title": "Physure: Select Python Interpreter",
+        "category": "Physure",
+        "icon": "$(python)"
+      },
+      {
+        "command": "vsc-physure.exportToPython",
+        "title": "Physure: Export Current File to Python (.py)",
+        "category": "Physure",
+        "icon": "$(output)"
+      },
+      {
+        "command": "vsc-physure.exportToMarkdown",
+        "title": "Physure: Export Current File to Markdown Report (.md)",
+        "category": "Physure",
+        "icon": "$(markdown)"
+      },
+      {
+        "command": "vsc-physure.evaluateLens",
+        "title": "Physure: Evaluate Live Results (CodeLens)",
+        "category": "Physure",
+        "icon": "$(play)"
+      },
+      {
+        "command": "vsc-physure.clearLens",
+        "title": "Physure: Clear Live Results (CodeLens)",
+        "category": "Physure",
+        "icon": "$(clear-all)"
       }
     ],
     "menus": {
       "editor/title": [
         {
-          "command": "vsc-measurekit.runFile",
+          "command": "vsc-physure.runFile",
           "group": "navigation",
           "when": "editorLangId == mkml"
         }
       ],
       "editor/context": [
         {
-          "command": "vsc-measurekit.runFile",
+          "command": "vsc-physure.runFile",
           "group": "1_run",
           "when": "editorLangId == mkml"
         },
         {
-          "command": "vsc-measurekit.sendToRepl",
+          "command": "vsc-physure.sendToRepl",
           "group": "1_run",
+          "when": "editorLangId == mkml"
+        },
+        {
+          "command": "vsc-physure.restartRepl",
+          "group": "1_run",
+          "when": "editorLangId == mkml"
+        },
+        {
+          "command": "vsc-physure.exportToPython",
+          "group": "2_export",
+          "when": "editorLangId == mkml"
+        },
+        {
+          "command": "vsc-physure.exportToMarkdown",
+          "group": "2_export",
+          "when": "editorLangId == mkml"
+        },
+        {
+          "command": "vsc-physure.selectInterpreter",
+          "group": "3_mkml",
           "when": "editorLangId == mkml"
         }
       ]
     },
     "keybindings": [
       {
-        "command": "vsc-measurekit.runFile",
+        "command": "vsc-physure.runFile",
         "key": "ctrl+alt+n",
         "mac": "cmd+alt+n",
         "when": "editorTextFocus && editorLangId == mkml"
       },
       {
-        "command": "vsc-measurekit.sendToRepl",
+        "command": "vsc-physure.runFile",
+        "key": "f5",
+        "when": "editorTextFocus && editorLangId == mkml"
+      },
+      {
+        "command": "vsc-physure.sendToRepl",
         "key": "shift+enter",
         "when": "editorTextFocus && editorLangId == mkml"
       }
     ],
     "configuration": {
-      "title": "MeasureKit Meta-Lang Support",
+      "title": "Physure Meta-Lang Support",
       "properties": {
-        "vsc-measurekit.pythonPath": {
+        "vsc-physure.pythonPath": {
           "type": "string",
           "default": "${workspaceFolder}/.venv/bin/python3",
-          "description": "Path to the Python interpreter where the measurekit library is installed. Supports the '${workspaceFolder}' environment variable.",
+          "description": "Path to the Python interpreter where the physure library is installed. Supports the '${workspaceFolder}' environment variable.",
           "scope": "resource"
         }
       }

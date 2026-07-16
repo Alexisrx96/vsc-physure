@@ -2,13 +2,13 @@ import { execFile } from 'child_process';
 import { parseUnitListJson } from './tokenizer';
 
 const UNIT_QUERY_SCRIPT =
-    'import json,measurekit; print(json.dumps(sorted(measurekit.get_active_system().UNIT_SYMBOL_REGISTRY.keys())))';
+    'import json,physure; print(json.dumps(sorted(physure.get_active_system().UNIT_SYMBOL_REGISTRY.keys())))';
 const FETCH_TIMEOUT_MS = 5000;
 
 /**
  * Runs the unit query script against `pythonPath` and returns the live,
  * filtered unit symbol list. Rejects if the interpreter is missing,
- * measurekit isn't installed, the query times out, or the output isn't
+ * physure isn't installed, the query times out, or the output isn't
  * parseable — callers should catch and fall back to a static list.
  */
 export function fetchUnitsFromInterpreter(pythonPath: string): Promise<string[]> {
@@ -36,7 +36,7 @@ const unitsCache = new Map<string, Promise<string[]>>();
  * `fallback` if the interpreter can't be queried. On failure the cache
  * entry is removed (not left holding the fallback) so the next call
  * retries fresh — a fetch failure may be transient (e.g. a cold-filesystem
- * timeout) rather than durable (e.g. measurekit not installed), and a
+ * timeout) rather than durable (e.g. physure not installed), and a
  * warning is logged so a degraded autocomplete list is diagnosable.
  */
 export function getUnitsForPath(pythonPath: string, fallback: string[]): Promise<string[]> {
@@ -47,7 +47,7 @@ export function getUnitsForPath(pythonPath: string, fallback: string[]): Promise
 
     const promise = fetchUnitsFromInterpreter(pythonPath).catch((error) => {
         unitsCache.delete(pythonPath);
-        console.warn(`vsc-measurekit: failed to fetch live unit list from ${pythonPath}, falling back to static list: ${error}`);
+        console.warn(`vsc-physure: failed to fetch live unit list from ${pythonPath}, falling back to static list: ${error}`);
         return fallback;
     });
 

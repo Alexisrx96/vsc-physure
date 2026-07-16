@@ -3,22 +3,41 @@
   "name": "MKML",
   "patterns": [
     {
+      "include": "#text-blocks"
+    },
+    {
       "include": "#comments"
+    },
+    {
+      "include": "#keywords"
+    },
+    {
+      "include": "#builtin-functions"
     },
     {
       "include": "#conversion"
     },
     {
-      "include": "#uncertainty-operator"
+      "include": "#format-specifier"
     },
     {
+      "include": "#uncertainty-operator"
+    },
+
+    {
       "include": "#comparison-operator"
+    },
+    {
+      "include": "#function-definition"
     },
     {
       "include": "#assignment"
     },
     {
       "include": "#operators"
+    },
+    {
+      "include": "#punctuation"
     },
     {
       "include": "#numbers"
@@ -30,10 +49,22 @@
       "include": "#superscripts"
     },
     {
+      "include": "#subscripts"
+    },
+    {
       "include": "#identifiers"
     }
   ],
   "repository": {
+    "text-blocks": {
+      "patterns": [
+        {
+          "name": "markup.raw.block.markdown.mkml",
+          "begin": "```",
+          "end": "```"
+        }
+      ]
+    },
     "comments": {
       "patterns": [
         {
@@ -42,10 +73,26 @@
         }
       ]
     },
+    "keywords": {
+      "patterns": [
+        {
+          "name": "keyword.control.mkml",
+          "match": "\\b(let|in)\\b"
+        }
+      ]
+    },
+    "builtin-functions": {
+      "patterns": [
+        {
+          "name": "support.function.builtin.mkml",
+          "match": "\\b(abs|round|floor|ceil|min|max|sqrt|sin|cos|tan|exp|log|ln)\\b(?=\\s*\\()"
+        }
+      ]
+    },
     "conversion": {
       "patterns": [
         {
-          "match": "(=>|->)\\s*([a-zA-Z_][a-zA-Z0-9_\\*/\\^\\+-]*)",
+          "match": "(=>|->|<=>|⇌)\\s*([\\p{L}_][\\p{L}\\p{N}_\\*/\\^\\+-]*)",
           "captures": {
             "1": {
               "name": "keyword.operator.conversion.mkml"
@@ -57,6 +104,22 @@
         }
       ]
     },
+    "format-specifier": {
+      "patterns": [
+        {
+          "match": "(:)\\s*([\\.\\p{L}\\p{N}_\\|]+)(?=\\s*\\?|\\s*$|\\s*#)",
+          "captures": {
+            "1": {
+              "name": "punctuation.separator.delimiter.format.mkml"
+            },
+            "2": {
+              "name": "storage.modifier.format.mkml"
+            }
+          }
+        }
+      ]
+    },
+
     "uncertainty-operator": {
       "patterns": [
         {
@@ -73,10 +136,28 @@
         }
       ]
     },
+    "function-definition": {
+      "patterns": [
+        {
+          "match": "^[ \\t]*([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(\\([^\\)]*\\))\\s*(=)(?!=)",
+          "captures": {
+            "1": {
+              "name": "entity.name.function.mkml"
+            },
+            "2": {
+              "name": "variable.parameter.mkml"
+            },
+            "3": {
+              "name": "keyword.operator.assignment.mkml"
+            }
+          }
+        }
+      ]
+    },
     "assignment": {
       "patterns": [
         {
-          "match": "^[ \\t]*([a-zA-Z_][a-zA-Z0-9_]*)\\s*(=)(?!=)",
+          "match": "^[ \\t]*([\\p{L}_][\\p{L}\\p{N}_]*)\\s*(=)(?!=)",
           "captures": {
             "1": {
               "name": "variable.other.assignment.mkml"
@@ -92,11 +173,20 @@
       "patterns": [
         {
           "name": "keyword.operator.arithmetic.mkml",
-          "match": "\\*\\*|\\+|-|\\*|/|\\^|="
+          "match": "\\*\\*|\\+|-|\\*|/|\\^|=|×|÷|√|\\|"
+
         },
         {
           "name": "keyword.operator.query.mkml",
           "match": "\\?"
+        }
+      ]
+    },
+    "punctuation": {
+      "patterns": [
+        {
+          "name": "punctuation.separator.delimiter.mkml",
+          "match": "[,:]"
         }
       ]
     },
@@ -115,7 +205,7 @@
     "units-after-numbers": {
       "patterns": [
         {
-          "match": "(?<=\\b\\d|\\b\\d\\.\\d|\\b\\d\\.)\\s*([a-zA-Z_][a-zA-Z0-9_]*)\\b",
+          "match": "(?<=\\b\\d|\\b\\d\\.\\d|\\b\\d\\.)\\s*([\\p{L}_][\\p{L}\\p{N}_]*)\\b",
           "captures": {
             "1": {
               "name": "entity.name.type.class.mkml"
@@ -132,11 +222,19 @@
         }
       ]
     },
+    "subscripts": {
+      "patterns": [
+        {
+          "name": "constant.numeric.subscript.mkml",
+          "match": "[₀₁₂₃₄₅₆₇₈₉₋]+"
+        }
+      ]
+    },
     "identifiers": {
       "patterns": [
         {
           "name": "variable.other.readwrite.mkml",
-          "match": "\\b[a-zA-Z_][a-zA-Z0-9_]*\\b"
+          "match": "\\b[\\p{L}_][\\p{L}\\p{N}_]*\\b"
         }
       ]
     }
