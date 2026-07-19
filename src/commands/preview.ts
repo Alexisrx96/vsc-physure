@@ -102,10 +102,11 @@ function updateWebviewContent(document: vscode.TextDocument): void {
         // Single-line text block: ```text```
         if (trimmed.startsWith('```') && trimmed.endsWith('```') && trimmed.length > 6) {
             const innerText = trimmed.substring(3, trimmed.length - 3).trim();
+            const interpolatedText = resultsMap.get(idx) ?? innerText;
             rowsHtml += `
                 <div class="note-card">
-                    <div class="card-line">Line ${idx + 1}</div>
-                    <div class="note-body">📝 <strong>Note:</strong> ${escapeHtml(innerText)}</div>
+                    <span class="card-line-badge">Line ${idx + 1} &bull; Text Note</span>
+                    <div class="note-body-text">📝 <strong>Note:</strong> ${escapeHtml(interpolatedText)}</div>
                 </div>
             `;
             idx++;
@@ -114,13 +115,14 @@ function updateWebviewContent(document: vscode.TextDocument): void {
 
         // Multiline text block boundary: ```
         if (trimmed.startsWith('```')) {
-            const blockStartLine = idx + 1;
+            const blockStartLine = idx;
             idx++;
             const textBlockLines: string[] = [];
             while (idx < lines.length && !lines[idx].trim().startsWith('```')) {
                 textBlockLines.push(lines[idx]);
                 idx++;
             }
+            const blockEndLine = idx;
             if (idx < lines.length && lines[idx].trim().startsWith('```')) {
                 idx++; // consume closing ```
             }
@@ -129,8 +131,8 @@ function updateWebviewContent(document: vscode.TextDocument): void {
             if (interpolatedText) {
                 rowsHtml += `
                     <div class="note-card">
-                        <div class="card-line">Text Block (Lines ${blockStartLine}-${idx})</div>
-                        <div class="note-body">📝 <strong>Note:</strong> ${escapeHtml(interpolatedText).replace(/\n/g, '<br/>')}</div>
+                        <span class="card-line-badge">Lines ${blockStartLine + 1}-${blockEndLine + 1} &bull; Text Block</span>
+                        <div class="note-body-text">📝 ${escapeHtml(interpolatedText).replace(/\n/g, '<br/>')}</div>
                     </div>
                 `;
             }
@@ -166,10 +168,10 @@ function updateWebviewContent(document: vscode.TextDocument): void {
 
             rowsHtml += `
                 <div class="calc-card func-card">
-                    <div class="card-line">Function Definition (Lines ${funcStartLine + 1}-${idx})</div>
-                    <div class="card-expr"><pre><code>${escapeHtml(fullFuncText)}</code></pre></div>
+                    <span class="card-line-badge">Function Definition &bull; Lines ${funcStartLine + 1}-${idx}</span>
+                    <div class="card-expr-box"><pre><code>${escapeHtml(fullFuncText)}</code></pre></div>
                     ${latexFunc ? `<div class="card-latex">\\[ ${latexFunc} \\]</div>` : ''}
-                    <div class="card-result">▶ Function Registered</div>
+                    <div class="card-result-pill badge-purple">⚡ Function Registered</div>
                 </div>
             `;
             continue;
@@ -183,16 +185,18 @@ function updateWebviewContent(document: vscode.TextDocument): void {
         if (output) {
             if (output.startsWith('[PLOT_IMAGE:')) {
                 const b64Uri = output.substring(12, output.length - 1);
-                resultHtml = `<div class="plot-container"><img src="${b64Uri}" class="plot-img" /></div>`;
+                resultHtml = `<div class="plot-container"><img src="${b64Uri}" class="plot-img" alt="Physure Live Plot" /></div>`;
+            } else if (output.includes('Error') || output.includes('Mismatch')) {
+                resultHtml = `<div class="card-result-pill badge-error">❌ ${escapeHtml(output)}</div>`;
             } else {
-                resultHtml = `<div class="card-result">▶ Result: <strong>${escapeHtml(output)}</strong></div>`;
+                resultHtml = `<div class="card-result-pill badge-success">▶ Result: <strong>${escapeHtml(output)}</strong></div>`;
             }
         }
 
         rowsHtml += `
             <div class="calc-card">
-                <div class="card-line">Line ${idx + 1}</div>
-                <div class="card-expr"><code>${escapeHtml(trimmed)}</code></div>
+                <span class="card-line-badge">Line ${idx + 1}</span>
+                <div class="card-expr-box"><code>${escapeHtml(trimmed)}</code></div>
                 ${latex ? `<div class="card-latex">\\[ ${escapeHtml(latex)} \\]</div>` : ''}
                 ${resultHtml}
             </div>
@@ -205,9 +209,9 @@ function updateWebviewContent(document: vscode.TextDocument): void {
         const val = resultsMap.get(sym.line) ?? '-';
         varsHtml += `
             <tr>
-                <td><code>${escapeHtml(sym.name)}</code></td>
-                <td>Line ${sym.line + 1}</td>
-                <td><strong style="color: #4ec9b0;">${escapeHtml(val)}</strong></td>
+                <td><code class="sym-code">${escapeHtml(sym.name)}</code></td>
+                <td><span class="line-tag">Line ${sym.line + 1}</span></td>
+                <td><strong class="val-text">${escapeHtml(val)}</strong></td>
             </tr>
         `;
     });
@@ -219,65 +223,264 @@ function updateWebviewContent(document: vscode.TextDocument): void {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Physure Live Preview</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
         onload="renderMathInElement(document.body);"></script>
     <style>
+        :root {
+            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'Fira Code', monospace;
+            
+            --bg-main: var(--vscode-editor-background, #0f1117);
+            --fg-main: var(--vscode-editor-foreground, #e2e8f0);
+            
+            --card-bg: var(--vscode-sideBar-background, #171a23);
+            --card-border: var(--vscode-widget-border, rgba(255, 255, 255, 0.08));
+            
+            --accent-cyan: #00f2fe;
+            --accent-blue: #4facfe;
+            --accent-emerald: #10b981;
+            --accent-amber: #f59e0b;
+            --accent-purple: #a855f7;
+            --accent-rose: #f43f5e;
+            
+            --text-muted: #94a3b8;
+            --code-bg: rgba(15, 23, 42, 0.7);
+        }
+
         body {
-            font-family: var(--vscode-font-family, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
-            color: var(--vscode-editor-foreground);
-            background-color: var(--vscode-editor-background);
-            padding: 20px;
-            line-height: 1.5;
+            font-family: var(--font-sans);
+            background-color: var(--bg-main);
+            color: var(--fg-main);
+            padding: 24px;
+            margin: 0;
+            line-height: 1.6;
         }
-        h2, h3 { color: var(--vscode-symbolIcon-keywordForeground, #569cd6); }
-        .calc-card, .note-card {
-            border: 1px solid var(--vscode-widget-border, #333);
-            background: var(--vscode-editor-inactiveSelectionBackground, #1e1e1e);
-            border-radius: 4px;
-            padding: 12px;
+
+        h2, h3 {
+            font-weight: 600;
+            letter-spacing: -0.3px;
+        }
+
+        h3 {
+            color: var(--accent-blue);
+            margin-top: 28px;
             margin-bottom: 12px;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
+
+        .header-banner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(79, 172, 254, 0.12), rgba(0, 242, 254, 0.04));
+            border: 1px solid rgba(79, 172, 254, 0.25);
+            border-radius: 12px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        }
+
+        .header-title {
+            margin: 0;
+            font-size: 1.25rem;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .calc-card {
-            border-left: 4px solid var(--vscode-symbolIcon-fieldForeground, #4ec9b0);
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-left: 4px solid var(--accent-blue);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 14px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
         }
+
+        .func-card {
+            border-left-color: var(--accent-purple);
+        }
+
         .note-card {
-            border-left: 4px solid var(--vscode-textBlockQuote-border, #ce9178);
-            background: var(--vscode-textBlockQuote-background, rgba(127,127,127,0.08));
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02));
+            border: 1px solid rgba(245, 158, 11, 0.25);
+            border-left: 4px solid var(--accent-amber);
+            border-radius: 10px;
+            padding: 16px;
+            margin-bottom: 14px;
         }
-        .card-line { font-size: 0.8em; color: var(--vscode-descriptionForeground, #888); }
-        .card-expr { margin-top: 4px; font-family: monospace; }
-        .card-latex { margin: 8px 0; font-size: 1.1em; text-align: center; }
-        .card-result { margin-top: 6px; font-size: 0.95em; color: var(--vscode-textPreformat-foreground, #ce9178); }
-        .note-body { margin-top: 6px; font-size: 0.95em; }
-        .plot-container { margin-top: 10px; text-align: center; }
-        .plot-img { max-width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--vscode-widget-border, #444); box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { text-align: left; padding: 8px; border-bottom: 1px solid var(--vscode-widget-border, #333); }
-        th { background-color: var(--vscode-sideBar-background, #252526); }
-        .top-bar { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--vscode-widget-border, #333); padding-bottom: 10px; margin-bottom: 15px; }
-        .btn-export { background: var(--vscode-button-background, #0e639c); color: var(--vscode-button-foreground, #fff); border: none; padding: 6px 14px; border-radius: 4px; cursor: pointer; font-size: 0.9em; font-weight: 500; }
-        .btn-export:hover { background: var(--vscode-button-hoverBackground, #1177bb); }
+
+        .card-line-badge {
+            display: inline-block;
+            font-size: 0.72rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-muted);
+            margin-bottom: 8px;
+        }
+
+        .card-expr-box {
+            font-family: var(--font-mono);
+            font-size: 0.92rem;
+            background: var(--code-bg);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            padding: 10px 14px;
+            border-radius: 6px;
+            color: #f8fafc;
+            overflow-x: auto;
+            margin-top: 4px;
+        }
+
+        .card-expr-box code {
+            font-family: inherit;
+        }
+
+        .card-latex {
+            margin: 12px 0;
+            padding: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 6px;
+            font-size: 1.15rem;
+            text-align: center;
+        }
+
+        .card-result-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 10px;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.12);
+            border: 1px solid rgba(16, 185, 129, 0.35);
+            color: #34d399;
+        }
+
+        .badge-purple {
+            background: rgba(168, 85, 247, 0.12);
+            border: 1px solid rgba(168, 85, 247, 0.35);
+            color: #c084fc;
+        }
+
+        .badge-error {
+            background: rgba(244, 63, 94, 0.12);
+            border: 1px solid rgba(244, 63, 94, 0.35);
+            color: #fb7185;
+        }
+
+        .note-body-text {
+            font-size: 0.98rem;
+            color: #f1f5f9;
+            margin-top: 6px;
+        }
+
+        .plot-container {
+            margin-top: 12px;
+            text-align: center;
+        }
+
+        .plot-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        }
+
+        .table-glass {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            margin-bottom: 20px;
+        }
+
+        .table-glass th {
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text-muted);
+            text-align: left;
+            padding: 10px 16px;
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .table-glass td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            font-size: 0.92rem;
+        }
+
+        .sym-code {
+            font-family: var(--font-mono);
+            color: var(--accent-cyan);
+        }
+
+        .line-tag {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        .val-text {
+            color: #34d399;
+        }
+
+        .btn-export {
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
+            color: #0f172a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.88rem;
+            font-weight: 700;
+            transition: opacity 0.2s;
+        }
+
+        .btn-export:hover {
+            opacity: 0.9;
+        }
     </style>
 </head>
 <body>
-    <div class="top-bar">
-        <h2 style="margin: 0;">⚡ Physure Live Preview: ${escapeHtml(filename)}</h2>
+    <div class="header-banner">
+        <h2 class="header-title">⚡ Physure Live Report: ${escapeHtml(filename)}</h2>
         <button class="btn-export" onclick="exportReport()">📥 Export HTML Report</button>
     </div>
     
     <h3>📋 Variables & Quantities</h3>
-    <table>
+    <table class="table-glass">
         <thead>
-            <tr><th>Symbol</th><th>Source</th><th>Evaluated Value</th></tr>
+            <tr><th>Symbol</th><th>Location</th><th>Evaluated Value</th></tr>
         </thead>
         <tbody>
-            ${varsHtml || '<tr><td colspan="3">No variable assignments detected.</td></tr>'}
+            ${varsHtml || '<tr><td colspan="3" style="color: var(--text-muted);">No variable assignments detected.</td></tr>'}
         </tbody>
     </table>
 
     <h3>🧮 Calculation Notebook</h3>
-    ${rowsHtml || '<p>No expressions evaluated yet.</p>'}
+    ${rowsHtml || '<p style="color: var(--text-muted);">No expressions evaluated yet.</p>'}
 
     <script>
         const vscode = acquireVsCodeApi();
