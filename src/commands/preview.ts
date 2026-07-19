@@ -94,6 +94,8 @@ function updateWebviewContent(document: vscode.TextDocument): void {
 
     let rowsHtml = '';
     let idx = 0;
+    let eqCounter = 1;
+    let figCounter = 1;
 
     while (idx < lines.length) {
         const lineText = lines[idx];
@@ -104,9 +106,8 @@ function updateWebviewContent(document: vscode.TextDocument): void {
             const innerText = trimmed.substring(3, trimmed.length - 3).trim();
             const interpolatedText = resultsMap.get(idx) ?? innerText;
             rowsHtml += `
-                <div class="note-card">
-                    <span class="card-line-badge">Line ${idx + 1} &bull; Text Note</span>
-                    <div class="note-body-text">📝 <strong>Note:</strong> ${escapeHtml(interpolatedText)}</div>
+                <div class="academic-prose">
+                    <p>${escapeHtml(interpolatedText)}</p>
                 </div>
             `;
             idx++;
@@ -122,17 +123,20 @@ function updateWebviewContent(document: vscode.TextDocument): void {
                 textBlockLines.push(lines[idx]);
                 idx++;
             }
-            const blockEndLine = idx;
             if (idx < lines.length && lines[idx].trim().startsWith('```')) {
                 idx++; // consume closing ```
             }
             const fullText = textBlockLines.join('\n').trim();
             const interpolatedText = resultsMap.get(blockStartLine) ?? fullText;
             if (interpolatedText) {
+                const formattedParagraphs = escapeHtml(interpolatedText)
+                    .split('\n\n')
+                    .map((p) => `<p>${p.replace(/\n/g, '<br/>')}</p>`)
+                    .join('');
+
                 rowsHtml += `
-                    <div class="note-card">
-                        <span class="card-line-badge">Lines ${blockStartLine + 1}-${blockEndLine + 1} &bull; Text Block</span>
-                        <div class="note-body-text">📝 ${escapeHtml(interpolatedText).replace(/\n/g, '<br/>')}</div>
+                    <div class="academic-prose">
+                        ${formattedParagraphs}
                     </div>
                 `;
             }
@@ -165,13 +169,16 @@ function updateWebviewContent(document: vscode.TextDocument): void {
 
             const fullFuncText = funcLines.join('\n').trim();
             const latexFunc = functionToLatex(funcLines);
+            const eqNum = eqCounter++;
 
             rowsHtml += `
-                <div class="calc-card func-card">
-                    <span class="card-line-badge">Function Definition &bull; Lines ${funcStartLine + 1}-${idx}</span>
-                    <div class="card-expr-box"><pre><code>${escapeHtml(fullFuncText)}</code></pre></div>
-                    ${latexFunc ? `<div class="card-latex">\\[ ${latexFunc} \\]</div>` : ''}
-                    <div class="card-result-pill badge-purple">⚡ Function Registered</div>
+                <div class="academic-eq-block">
+                    <div class="eq-header">
+                        <span class="eq-label">Definition &bull; Lines ${funcStartLine + 1}&ndash;${idx}</span>
+                        <span class="eq-num">(${eqNum})</span>
+                    </div>
+                    ${latexFunc ? `<div class="eq-math">\\[ ${latexFunc} \\]</div>` : ''}
+                    <div class="eq-code-ref"><code>${escapeHtml(fullFuncText)}</code></div>
                 </div>
             `;
             continue;
@@ -180,312 +187,419 @@ function updateWebviewContent(document: vscode.TextDocument): void {
         // Normal single calculation line
         const output = resultsMap.get(idx);
         const latex = expressionToLatex(trimmed);
+        const lineNum = idx + 1;
 
-        let resultHtml = '';
-        if (output) {
-            if (output.startsWith('[PLOT_IMAGE:')) {
-                const b64Uri = output.substring(12, output.length - 1);
-                resultHtml = `<div class="plot-container"><img src="${b64Uri}" class="plot-img" alt="Physure Live Plot" /></div>`;
-            } else if (output.includes('Error') || output.includes('Mismatch')) {
-                resultHtml = `<div class="card-result-pill badge-error">❌ ${escapeHtml(output)}</div>`;
-            } else {
-                resultHtml = `<div class="card-result-pill badge-success">▶ Result: <strong>${escapeHtml(output)}</strong></div>`;
+        if (output && output.startsWith('[PLOT_IMAGE:')) {
+            const b64Uri = output.substring(12, output.length - 1);
+            const figNum = figCounter++;
+            rowsHtml += `
+                <figure class="academic-figure">
+                    <div class="fig-img-wrapper">
+                        <img src="${b64Uri}" class="academic-fig-img" alt="Physure Figure ${figNum}" />
+                    </div>
+                    <figcaption class="fig-caption">
+                        <strong>Figura ${figNum}.</strong> Representación gráfica generada a partir de <code>${escapeHtml(trimmed)}</code> (Línea ${lineNum}).
+                    </figcaption>
+                </figure>
+            `;
+        } else {
+            const eqNum = eqCounter++;
+            let evalBadgeHtml = '';
+
+            if (output) {
+                if (output.includes('Error') || output.includes('Mismatch')) {
+                    evalBadgeHtml = `<div class="eval-result eval-error">❌ ${escapeHtml(output)}</div>`;
+                } else {
+                    evalBadgeHtml = `<div class="eval-result eval-success">&rArr; ${escapeHtml(output)}</div>`;
+                }
             }
-        }
 
-        rowsHtml += `
-            <div class="calc-card">
-                <span class="card-line-badge">Line ${idx + 1}</span>
-                <div class="card-expr-box"><code>${escapeHtml(trimmed)}</code></div>
-                ${latex ? `<div class="card-latex">\\[ ${escapeHtml(latex)} \\]</div>` : ''}
-                ${resultHtml}
-            </div>
-        `;
+            rowsHtml += `
+                <div class="academic-eq-block">
+                    <div class="eq-header">
+                        <span class="eq-label">Línea ${lineNum}</span>
+                        <span class="eq-num">(${eqNum})</span>
+                    </div>
+                    ${latex ? `<div class="eq-math">\\[ ${escapeHtml(latex)} \\]</div>` : ''}
+                    <div class="eq-body">
+                        <div class="eq-code-ref"><code>${escapeHtml(trimmed)}</code></div>
+                        ${evalBadgeHtml}
+                    </div>
+                </div>
+            `;
+        }
         idx++;
     }
 
     let varsHtml = '';
     symbols.forEach((sym) => {
-        const val = resultsMap.get(sym.line) ?? '-';
+        const val = resultsMap.get(sym.line) ?? '&mdash;';
         varsHtml += `
             <tr>
-                <td><code class="sym-code">${escapeHtml(sym.name)}</code></td>
-                <td><span class="line-tag">Line ${sym.line + 1}</span></td>
-                <td><strong class="val-text">${escapeHtml(val)}</strong></td>
+                <td><code class="sym-name">${escapeHtml(sym.name)}</code></td>
+                <td>Línea ${sym.line + 1}</td>
+                <td class="sym-val"><strong>${escapeHtml(val)}</strong></td>
             </tr>
         `;
     });
 
     currentPanel.webview.html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Physure Live Preview</title>
+    <title>Informe Técnico Physure: ${escapeHtml(filename)}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
         onload="renderMathInElement(document.body);"></script>
     <style>
         :root {
-            --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-paper: 'Crimson Pro', 'Georgia', 'Times New Roman', serif;
+            --font-sans: 'Inter', -apple-system, sans-serif;
             --font-mono: 'Fira Code', monospace;
+
+            /* Light Academic Palette (Default) */
+            --bg-canvas: #f4f6f9;
+            --bg-paper: #ffffff;
+            --text-primary: #1e293b;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
             
-            --bg-main: var(--vscode-editor-background, #0f1117);
-            --fg-main: var(--vscode-editor-foreground, #e2e8f0);
-            
-            --card-bg: var(--vscode-sideBar-background, #171a23);
-            --card-border: var(--vscode-widget-border, rgba(255, 255, 255, 0.08));
-            
-            --accent-cyan: #00f2fe;
-            --accent-blue: #4facfe;
-            --accent-emerald: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-purple: #a855f7;
-            --accent-rose: #f43f5e;
-            
+            --border-color: #e2e8f0;
+            --border-rule: #0f172a;
+
+            --accent-primary: #0284c7;
+            --accent-success: #059669;
+            --accent-error: #dc2626;
+
+            --code-bg: #f8fafc;
+            --code-border: #e2e8f0;
+            --shadow-paper: 0 10px 30px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
+        }
+
+        body.dark-mode {
+            /* Dark Academic Palette */
+            --bg-canvas: #0f1117;
+            --bg-paper: #181b24;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
             --text-muted: #94a3b8;
+            
+            --border-color: #2e3545;
+            --border-rule: #e2e8f0;
+
+            --accent-primary: #38bdf8;
+            --accent-success: #34d399;
+            --accent-error: #f87171;
+
             --code-bg: rgba(15, 23, 42, 0.7);
+            --code-border: rgba(255, 255, 255, 0.08);
+            --shadow-paper: 0 12px 36px rgba(0, 0, 0, 0.4);
         }
 
         body {
             font-family: var(--font-sans);
-            background-color: var(--bg-main);
-            color: var(--fg-main);
-            padding: 24px;
+            background-color: var(--bg-canvas);
+            color: var(--text-primary);
             margin: 0;
-            line-height: 1.6;
+            padding: 40px 20px;
+            line-height: 1.7;
         }
 
-        h2, h3 {
-            font-weight: 600;
-            letter-spacing: -0.3px;
+        .paper-container {
+            max-width: 880px;
+            margin: 0 auto;
+            background-color: var(--bg-paper);
+            padding: 56px 64px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-paper);
+            border: 1px solid var(--border-color);
         }
 
-        h3 {
-            color: var(--accent-blue);
-            margin-top: 28px;
-            margin-bottom: 12px;
-            font-size: 1.15rem;
-            display: flex;
-            align-items: center;
-            gap: 8px;
+        /* Academic Article Header */
+        .academic-header {
+            border-bottom: 2px solid var(--border-rule);
+            padding-bottom: 20px;
+            margin-bottom: 32px;
         }
 
-        .header-banner {
+        .header-top {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.12), rgba(0, 242, 254, 0.04));
-            border: 1px solid rgba(79, 172, 254, 0.25);
-            border-radius: 12px;
-            padding: 16px 20px;
-            margin-bottom: 24px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            font-size: 0.82rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 12px;
         }
 
-        .header-title {
-            margin: 0;
-            font-size: 1.25rem;
-            color: #ffffff;
+        .paper-title {
+            font-family: var(--font-paper);
+            font-size: 2.3rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin: 0 0 10px 0;
+            line-height: 1.25;
+        }
+
+        .paper-meta {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .meta-tag {
+            background: rgba(2, 132, 199, 0.08);
+            color: var(--accent-primary);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .actions-toolbar {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-action {
+            background: var(--bg-canvas);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+            padding: 6px 14px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+
+        /* Section Headings */
+        h2.sec-title {
+            font-family: var(--font-paper);
+            font-size: 1.45rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 6px;
+            margin-top: 36px;
+            margin-bottom: 18px;
             display: flex;
             align-items: center;
             gap: 10px;
         }
 
-        .calc-card {
-            background: var(--card-bg);
-            border: 1px solid var(--card-border);
-            border-left: 4px solid var(--accent-blue);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 14px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
-        }
-
-        .func-card {
-            border-left-color: var(--accent-purple);
-        }
-
-        .note-card {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.08), rgba(245, 158, 11, 0.02));
-            border: 1px solid rgba(245, 158, 11, 0.25);
-            border-left: 4px solid var(--accent-amber);
-            border-radius: 10px;
-            padding: 16px;
-            margin-bottom: 14px;
-        }
-
-        .card-line-badge {
-            display: inline-block;
-            font-size: 0.72rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.06);
-            color: var(--text-muted);
-            margin-bottom: 8px;
-        }
-
-        .card-expr-box {
-            font-family: var(--font-mono);
-            font-size: 0.92rem;
-            background: var(--code-bg);
-            border: 1px solid rgba(255, 255, 255, 0.06);
-            padding: 10px 14px;
-            border-radius: 6px;
-            color: #f8fafc;
-            overflow-x: auto;
-            margin-top: 4px;
-        }
-
-        .card-expr-box code {
-            font-family: inherit;
-        }
-
-        .card-latex {
-            margin: 12px 0;
-            padding: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 6px;
-            font-size: 1.15rem;
-            text-align: center;
-        }
-
-        .card-result-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            margin-top: 10px;
-            padding: 6px 14px;
-            border-radius: 20px;
-            font-weight: 600;
-            font-size: 0.9rem;
-        }
-
-        .badge-success {
-            background: rgba(16, 185, 129, 0.12);
-            border: 1px solid rgba(16, 185, 129, 0.35);
-            color: #34d399;
-        }
-
-        .badge-purple {
-            background: rgba(168, 85, 247, 0.12);
-            border: 1px solid rgba(168, 85, 247, 0.35);
-            color: #c084fc;
-        }
-
-        .badge-error {
-            background: rgba(244, 63, 94, 0.12);
-            border: 1px solid rgba(244, 63, 94, 0.35);
-            color: #fb7185;
-        }
-
-        .note-body-text {
-            font-size: 0.98rem;
-            color: #f1f5f9;
-            margin-top: 6px;
-        }
-
-        .plot-container {
-            margin-top: 12px;
-            text-align: center;
-        }
-
-        .plot-img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-        }
-
-        .table-glass {
+        /* Academic Booktabs Table */
+        .booktabs-table {
             width: 100%;
             border-collapse: collapse;
-            background: var(--card-bg);
-            border-radius: 10px;
-            overflow: hidden;
-            border: 1px solid var(--card-border);
+            font-size: 0.95rem;
+            margin-bottom: 28px;
+        }
+
+        .booktabs-table th {
+            border-top: 2px solid var(--border-rule);
+            border-bottom: 1px solid var(--text-primary);
+            padding: 8px 12px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .booktabs-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-secondary);
+        }
+
+        .booktabs-table tr:last-child td {
+            border-bottom: 2px solid var(--border-rule);
+        }
+
+        .sym-name {
+            font-family: var(--font-mono);
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .sym-val {
+            color: var(--accent-success);
+        }
+
+        /* Academic Prose / Paragraphs */
+        .academic-prose {
+            font-family: var(--font-paper);
+            font-size: 1.15rem;
+            color: var(--text-primary);
+            line-height: 1.8;
             margin-bottom: 20px;
         }
 
-        .table-glass th {
-            background: rgba(255, 255, 255, 0.04);
+        .academic-prose p {
+            margin: 0 0 12px 0;
+            text-align: justify;
+        }
+
+        /* Equation Block */
+        .academic-eq-block {
+            background-color: var(--code-bg);
+            border: 1px solid var(--code-border);
+            border-radius: 8px;
+            padding: 16px 20px;
+            margin-bottom: 18px;
+        }
+
+        .eq-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.78rem;
             color: var(--text-muted);
-            text-align: left;
-            padding: 10px 16px;
-            font-size: 0.82rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            border-bottom: 1px solid var(--card-border);
+            margin-bottom: 6px;
         }
 
-        .table-glass td {
-            padding: 10px 16px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-            font-size: 0.92rem;
-        }
-
-        .sym-code {
+        .eq-num {
+            font-weight: 600;
             font-family: var(--font-mono);
-            color: var(--accent-cyan);
         }
 
-        .line-tag {
-            color: var(--text-muted);
-            font-size: 0.85rem;
+        .eq-math {
+            font-size: 1.25rem;
+            margin: 12px 0;
+            text-align: center;
         }
 
-        .val-text {
-            color: #34d399;
+        .eq-body {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 8px;
         }
 
-        .btn-export {
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-cyan));
-            color: #0f172a;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
+        .eq-code-ref {
+            font-family: var(--font-mono);
             font-size: 0.88rem;
-            font-weight: 700;
-            transition: opacity 0.2s;
+            color: var(--text-secondary);
+            overflow-x: auto;
         }
 
-        .btn-export:hover {
-            opacity: 0.9;
+        .eval-result {
+            font-family: var(--font-mono);
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .eval-success {
+            color: var(--accent-success);
+        }
+
+        .eval-error {
+            color: var(--accent-error);
+        }
+
+        /* Formal Academic Figures */
+        .academic-figure {
+            margin: 28px 0;
+            text-align: center;
+        }
+
+        .fig-img-wrapper {
+            background-color: #ffffff;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            display: inline-block;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+        }
+
+        .academic-fig-img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 4px;
+            display: block;
+        }
+
+        .fig-caption {
+            font-size: 0.88rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        @media print {
+            body {
+                background: #ffffff;
+                padding: 0;
+            }
+            .paper-container {
+                box-shadow: none;
+                border: none;
+                padding: 0;
+                max-width: 100%;
+            }
+            .actions-toolbar {
+                display: none;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="header-banner">
-        <h2 class="header-title">⚡ Physure Live Report: ${escapeHtml(filename)}</h2>
-        <button class="btn-export" onclick="exportReport()">📥 Export HTML Report</button>
-    </div>
-    
-    <h3>📋 Variables & Quantities</h3>
-    <table class="table-glass">
-        <thead>
-            <tr><th>Symbol</th><th>Location</th><th>Evaluated Value</th></tr>
-        </thead>
-        <tbody>
-            ${varsHtml || '<tr><td colspan="3" style="color: var(--text-muted);">No variable assignments detected.</td></tr>'}
-        </tbody>
-    </table>
+    <div class="paper-container">
+        <header class="academic-header">
+            <div class="header-top">
+                <span>Physure Computational Report</span>
+                <div class="actions-toolbar">
+                    <button class="btn-action" onclick="toggleTheme()">🌓 Tema</button>
+                    <button class="btn-action" onclick="exportReport()">📥 Exportar Reporte</button>
+                </div>
+            </div>
+            <h1 class="paper-title">${escapeHtml(filename)}</h1>
+            <div class="paper-meta">
+                <span class="meta-tag">Reporte Académico</span>
+                <span>Generado automáticamente por Physure Engine</span>
+            </div>
+        </header>
 
-    <h3>🧮 Calculation Notebook</h3>
-    ${rowsHtml || '<p style="color: var(--text-muted);">No expressions evaluated yet.</p>'}
+        <h2 class="sec-title">1. Resumen de Variables y Magnitudes</h2>
+        <table class="booktabs-table">
+            <thead>
+                <tr>
+                    <th>Símbolo</th>
+                    <th>Ubicación</th>
+                    <th>Valor Evaluado</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${varsHtml || '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No se registraron asignaciones de variables.</td></tr>'}
+            </tbody>
+        </table>
+
+        <h2 class="sec-title">2. Secuencia de Cálculos y Expresiones</h2>
+        ${rowsHtml || '<p style="color: var(--text-muted);">No se detectaron expresiones evaluadas.</p>'}
+    </div>
 
     <script>
         const vscode = acquireVsCodeApi();
         function exportReport() {
             vscode.postMessage({ command: 'exportHtml' });
+        }
+        function toggleTheme() {
+            document.body.classList.toggle('dark-mode');
         }
     </script>
 </body>
