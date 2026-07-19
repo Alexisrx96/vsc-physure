@@ -133,11 +133,39 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
                 const definition = findVariableDefinition(lines, word, position.line);
                 if (definition) {
                     const md = new vscode.MarkdownString();
+                    md.isTrusted = true;
                     md.appendMarkdown(
                         `${definition.isFunction ? '**Function Definition**' : '**Variable Definition**'}: ` +
                         `*(line ${definition.line + 1})*\n`
                     );
                     md.appendCodeblock(definition.text, 'phs');
+
+                    // Uncertainty & Confidence Range Gauge
+                    const uncMatch = /(\d+(?:\.\d+)?)\s*(?:[a-zA-Z_]+\s*)?(?:\+\/-|±)\s*(\d+(?:\.\d+)?)\s*([a-zA-Z_/\^]+)?/.exec(definition.text);
+                    if (uncMatch) {
+                        const val = parseFloat(uncMatch[1]);
+                        const unc = parseFloat(uncMatch[2]);
+                        const unitStr = uncMatch[3] ? ` ${uncMatch[3]}` : '';
+                        const valMin = (val - unc).toFixed(4);
+                        const valMax = (val + unc).toFixed(4);
+                        const relPct = ((unc / Math.abs(val)) * 100).toFixed(2);
+                        md.appendMarkdown(`\n🎯 **Confidence Interval:** \`[${valMin}${unitStr} ... ${valMax}${unitStr}]\` *(± ${relPct}% relative uncertainty)*\n`);
+                    }
+
+                    const latex = expressionToLatex(definition.text);
+                    if (latex) {
+                        md.appendMarkdown(`\n**Math Expression:**\n$$\n${latex}\n$$\n`);
+                    }
+
+                    // Interactive Action Links
+                    const copyArgs = encodeURIComponent(JSON.stringify([definition.text]));
+                    md.appendMarkdown(
+                        `---\n` +
+                        `[📋 Copy Definition](command:vsc-physure.copyText?${copyArgs}) | ` +
+                        `[🔄 Convert Unit](command:vsc-physure.convertUnitAtCursor) | ` +
+                        `[🕸️ View Dependency Graph](command:vsc-physure.showDependencyGraph)`
+                    );
+
                     return new vscode.Hover(md, range);
                 }
 
@@ -145,4 +173,81 @@ export function registerHoverProvider(context: vscode.ExtensionContext): void {
             }
         })
     );
+}
+
+export function expressionToLatex(expr: string): string | undefined {
+    // 1. Strip inline comments (# ...)
+    let s = expr.split('#')[0].trim();
+    if (!s || s.startsWith('```')) {
+        return undefined;
+    }
+
+    // 2. Skip standalone format specifiers or unit conversions (e.g. F_e => nN, F_e: base, fuerza: frac)
+    if (/^(?:[A-Za-z0-9_]+\s*)?(?:=>|:)\s*(?:base|alias|frac|raw|expand|[a-zA-Z]+|\.\d+[fe])$/.test(s)) {
+        return undefined;
+    }
+
+    // Also strip trailing : specifiers or => conversions if part of assignment
+    s = s.replace(/:\s*(?:base|alias|frac|\.\d+[fe])$/, '').replace(/=>\s*[A-Za-z_]+$/, '');
+
+    // Must contain math operators or assignments or math function calls
+    const hasMathOp = /[=+\-*/^><±√≈]|sqrt|frac|\b(?:sin|cos|tan|log|exp|round|abs|min|max)\b/.test(s);
+    if (!hasMathOp) {
+        return undefined;
+    }
+
+    // TERNARY OPERATOR: cond ? val1 : val2 -> \begin{cases} val1 & \text{if } cond \\ val2 & \text{otherwise} \end{cases}
+    if (s.includes('?') && s.includes(':') && !s.startsWith(':')) {
+        const ternaryMatch = /(.*?)\s*\?\s*(.*?)\s*:\s*(.*)/.exec(s);
+        if (ternaryMatch) {
+            const condLatex = expressionToLatex(ternaryMatch[1]) ?? ternaryMatch[1].trim();
+            const val1Latex = expressionToLatex(ternaryMatch[2]) ?? ternaryMatch[2].trim();
+            const val2Latex = expressionToLatex(ternaryMatch[3]) ?? ternaryMatch[3].trim();
+            return `\\begin{cases} ${val1Latex} & \\text{if } ${condLatex} \\\\ ${val2Latex} & \\text{otherwise} \\end{cases}`;
+        }
+    }
+
+    // FIRST: Exponents ** -> ^
+    s = s.replace(/\*\s*\*/g, '^');
+
+    // SECOND: Convert uncertainties +/- or ± -> \pm and ≈ -> \approx
+    s = s.replace(/\+\/-\s*|\s*±\s*/g, ' \\pm ');
+    s = s.replace(/≈/g, ' \\approx ');
+
+    // THIRD: Convert functions like sqrt(...) and round(...)
+    s = s.replace(/sqrt\((.*)\)/g, '\\sqrt{$1}');
+    s = s.replace(/round\(([^,]+),\s*([^)]+)\)/g, '\\text{round}($1, $2)');
+
+    // FOURTH: Protect unit divisions like m / s, km / h, N / C^2 inside simple unit phrases or function calls
+    s = s.replace(/(\b[a-zA-Z_]+\b)\s*\/\s*(\b[a-zA-Z_]+\b)/g, '$1/$2');
+
+    // FIFTH: Exponents: (base)^exp or var^exp
+    s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\^\s*(\([^)]+\)|[A-Za-z0-9_.+-]+)/g, '$1^{$2}');
+    s = s.replace(/²/g, '^{2}').replace(/³/g, '^{3}');
+
+    // SIXTH: Fractions (A) / (B) or var / var
+    s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\/\s*(\([^)]+\)|[A-Za-z0-9_^{}]+)/g, '\\frac{$1}{$2}');
+
+    // SEVENTH: Multiplication * -> \cdot
+    s = s.replace(/\*/g, ' \\cdot ');
+
+    // EIGHTH: Scientific notation 1.67e-27 -> 1.67 \times 10^{-27}
+    s = s.replace(/(\d+(?:\.\d+)?)[eE]\s*([+-]?\d+)/g, '$1 \\times 10^{$2}');
+
+    // NINTH: Wrap multi-letter identifiers containing underscores in \text{...}
+    s = s.replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, (word) => {
+        if (word.includes('_')) {
+            const escaped = word.replace(/_/g, '\\_');
+            return `\\text{${escaped}}`;
+        }
+        return word;
+    });
+
+    // Restore backslashes for \pi, \sqrt, \text, \frac, etc.
+    s = s.replace(/\\text\{\\pi\}/g, '\\pi');
+    s = s.replace(/\\text\{\\sqrt\}/g, '\\sqrt');
+    s = s.replace(/\\text\{\\frac\}/g, '\\frac');
+    s = s.replace(/\\text\{\\varepsilon\\_0\}/g, '\\varepsilon_0');
+
+    return s;
 }

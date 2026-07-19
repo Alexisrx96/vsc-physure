@@ -1,43 +1,58 @@
 import * as vscode from 'vscode';
-import { documentLines } from '../utils';
+import { getCachedLineResults, getDisplayMode, onInlayHintsChangeEvent } from './evalCodeLens';
 
 /**
- * Decorates conversion expressions (`=>`), queries (`?`), and assertions (`==`)
- * with a `⚡` marker at the end of the line as a visual cue that the expression
- * produces an output when evaluated.
- *
- * ponytail: the hint is purely decorative for now — real evaluated values would
- * require running the interpreter on every change, which is a future feature.
+ * Decorates expressions with real evaluated values as end-of-line ghost text Inlay Hints.
  */
 export function registerInlayHintsProvider(context: vscode.ExtensionContext): void {
-    context.subscriptions.push(
-        vscode.languages.registerInlayHintsProvider('phs', {
-            provideInlayHints(
-                document: vscode.TextDocument,
-                range: vscode.Range
-            ): vscode.InlayHint[] {
-                const hints: vscode.InlayHint[] = [];
-                const lines = documentLines(document);
-
-                for (let i = range.start.line; i <= range.end.line && i < lines.length; i++) {
-                    const lineText = lines[i].trim();
-                    if (!lineText || lineText.startsWith('#') || lineText.startsWith('```')) {
-                        continue;
-                    }
-                    if (lineText.endsWith('=')) {
-                        continue;
-                    }
-
-                    if (lineText.includes('=>') || lineText.endsWith('?') || lineText.includes('==')) {
-                        const position = new vscode.Position(i, lines[i].length);
-                        const hint = new vscode.InlayHint(position, '  ⚡', vscode.InlayHintKind.Type);
-                        hint.tooltip = new vscode.MarkdownString('Live PHS expression evaluation result');
-                        hints.push(hint);
-                    }
-                }
-
-                return hints;
+    const provider: vscode.InlayHintsProvider = {
+        onDidChangeInlayHints: onInlayHintsChangeEvent.event,
+        provideInlayHints(
+            document: vscode.TextDocument,
+            range: vscode.Range
+        ): vscode.InlayHint[] {
+            if (document.languageId !== 'phs') {
+                return [];
             }
-        })
+
+            const displayMode = getDisplayMode(document);
+            if (displayMode !== 'inlayHint' && displayMode !== 'both') {
+                return [];
+            }
+
+            const hints: vscode.InlayHint[] = [];
+            const lineResultsMap = new Map<number, string>();
+            for (const item of getCachedLineResults(document.uri.toString())) {
+                lineResultsMap.set(item.line, item.output);
+            }
+
+            for (let i = range.start.line; i <= range.end.line && i < document.lineCount; i++) {
+                const output = lineResultsMap.get(i);
+                if (output !== undefined) {
+                    const lineText = document.lineAt(i).text;
+                    const position = new vscode.Position(i, lineText.length);
+                    let formatted = output;
+                    if (formatted.includes('[PLOT_IMAGE:') || formatted.includes('📊')) {
+                        formatted = '📊 Live Figure';
+                    } else {
+                        formatted = formatted.replace(/\r?\n/g, ' ↵ ');
+                    }
+                    const hint = new vscode.InlayHint(position, `  = ${formatted}`, vscode.InlayHintKind.Parameter);
+                    hint.paddingLeft = true;
+                    hint.tooltip = new vscode.MarkdownString(
+                        output.includes('[PLOT_IMAGE:')
+                            ? '📊 **Live Figure Generated**'
+                            : `**Evaluated Result:** ${output}`
+                    );
+                    hints.push(hint);
+                }
+            }
+
+            return hints;
+        }
+    };
+
+    context.subscriptions.push(
+        vscode.languages.registerInlayHintsProvider('phs', provider)
     );
 }

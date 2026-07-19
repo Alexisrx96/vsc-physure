@@ -1,13 +1,16 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2026-07-18
+
+### Added
+- **Live Results Evaluation (CodeLens)**: Evaluate `.phs` expressions directly in the editor with precise line tracking and inline `▶ Result:` displays.
+- **Export Capabilities**: Export `.phs` files to standalone Python (`.py`) scripts or formatted Markdown (`.md`) calculation reports.
+- **Python Interpreter Selection**: Command to easily select and persist workspace Python virtual environments.
+- **Document Formatting**: Auto-formatting support for `.phs` files.
 
 ### Changed
-- File extension renamed from `.mkml` to `.phs` (language id `mkml` -> `phs`,
-  grammar scope `source.mkml` -> `source.phs`). Existing `.mkml` files must be
-  renamed manually.
-
-## [0.1.0] - 2026-07-11
+- File extension updated to `.phs` (language id `phs`, grammar scope `source.phs`).
+- Enhanced unit autocomplete and hover documentation support.
 
 ### Added
 - Syntax highlighting for Physure Meta-Lang (`.phs`) files.

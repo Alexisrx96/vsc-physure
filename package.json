@@ -1,8 +1,8 @@
 {
   "name": "vsc-physure",
   "displayName": "Physure (PHS) Support",
-  "description": "Syntax highlighting and REPL execution for Physure Meta-Lang (.phs) files",
-  "version": "0.2.1",
+  "description": "Syntax highlighting, live CodeLens evaluation, interactive REPL, and export tools for Physure Meta-Lang (.phs) files",
+  "version": "0.2.0",
   "publisher": "irvintorres",
   "license": "MIT",
   "icon": "images/icon.png",
@@ -43,6 +43,9 @@
     "@types/node": "^16.18.34",
     "@vscode/vsce": "^3.9.2"
   },
+  "activationEvents": [
+    "onLanguage:phs"
+  ],
   "contributes": {
     "languages": [
       {
@@ -126,12 +129,68 @@
         "title": "Physure: Clear Live Results (CodeLens)",
         "category": "Physure",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "vsc-physure.toggleLiveEvalMode",
+        "title": "Physure: Change Live Evaluation Mode",
+        "category": "Physure",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "vsc-physure.toggleDisplayMode",
+        "title": "Physure: Change Result Display Style (Inline / CodeLens)",
+        "category": "Physure",
+        "icon": "$(eye)"
+      },
+      {
+        "command": "vsc-physure.openPreview",
+        "title": "Physure: Open Live Calculation & Plot Preview",
+        "category": "Physure",
+        "icon": "$(preview)"
+      },
+      {
+        "command": "vsc-physure.showLogs",
+        "title": "Physure: Show Extension Logs",
+        "category": "Physure",
+        "icon": "$(output)"
+      },
+      {
+        "command": "vsc-physure.showDependencyGraph",
+        "title": "Physure: Show Calculation Dependency Graph",
+        "category": "Physure",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "vsc-physure.convertUnitAtCursor",
+        "title": "Physure: Convert Unit at Cursor",
+        "category": "Physure",
+        "icon": "$(symbol-unit)"
       }
     ],
+    "views": {
+      "explorer": [
+        {
+          "id": "vsc-physure.variableExplorer",
+          "name": "Physure Variables",
+          "icon": "$(symbol-variable)"
+        },
+        {
+          "type": "webview",
+          "id": "vsc-physure.unitPalette",
+          "name": "Physure Constants & Cheat-Sheet",
+          "icon": "$(book)"
+        }
+      ]
+    },
     "menus": {
       "editor/title": [
         {
           "command": "vsc-physure.runFile",
+          "group": "navigation",
+          "when": "editorLangId == phs"
+        },
+        {
+          "command": "vsc-physure.openPreview",
           "group": "navigation",
           "when": "editorLangId == phs"
         }
@@ -194,6 +253,44 @@
           "type": "string",
           "default": "${workspaceFolder}/.venv/bin/python3",
           "description": "Path to the Python interpreter where the physure library is installed. Supports the '${workspaceFolder}' environment variable.",
+          "scope": "resource"
+        },
+        "vsc-physure.liveEvalMode": {
+          "type": "string",
+          "enum": [
+            "off",
+            "onSave",
+            "onType"
+          ],
+          "enumDescriptions": [
+            "Manual evaluation (only when clicking CodeLens button or running command)",
+            "Recalculate automatically when saving the document",
+            "Recalculate automatically as you type (debounced)"
+          ],
+          "default": "onType",
+          "description": "Live evaluation trigger mode for Physure (.phs) documents.",
+          "scope": "resource"
+        },
+        "vsc-physure.displayMode": {
+          "type": "string",
+          "enum": [
+            "inlayHint",
+            "codeLens",
+            "both"
+          ],
+          "enumDescriptions": [
+            "Display live evaluation results as subtle ghost text (Inlay Hints) at end of lines",
+            "Display live evaluation results as CodeLens headers above lines",
+            "Display live evaluation results as both CodeLens and Inlay Hints"
+          ],
+          "default": "inlayHint",
+          "description": "Visual presentation style for live Physure evaluation results.",
+          "scope": "resource"
+        },
+        "vsc-physure.evalDebounceMs": {
+          "type": "number",
+          "default": 600,
+          "description": "Debounce delay in milliseconds before recalculating live evaluation while typing. Higher values reduce CPU and memory usage.",
           "scope": "resource"
         }
       }

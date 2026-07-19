@@ -19,11 +19,19 @@ import { registerInlayHintsProvider } from './providers/inlayHints';
 import { registerCodeActionProvider } from './providers/codeActions';
 import { registerCodeLensProvider } from './providers/evalCodeLens';
 
+import { registerVariableExplorer } from './providers/variableExplorer';
+import { PhysureUnitPaletteProvider } from './providers/unitPalette';
+
 // Commands
 import { registerRunFileCommand } from './commands/runFile';
 import { registerReplCommands } from './commands/repl';
 import { registerInterpreterCommand } from './commands/interpreter';
 import { registerExportCommands } from './commands/export';
+import { registerPreviewCommand } from './commands/preview';
+import { registerDependencyGraphCommand } from './commands/dependencyGraph';
+import { registerConvertUnitCommands } from './commands/convertUnit';
+
+import { logger } from './logger';
 
 /**
  * Extension entry point. Wires together the status bar, all language providers,
@@ -31,7 +39,8 @@ import { registerExportCommands } from './commands/export';
  * orchestrates their registration.
  */
 export function activate(context: vscode.ExtensionContext): void {
-    console.log('Physure extension is now active!');
+    logger.init(context);
+    logger.info('Physure extension is now active!');
 
     // ── Status Bar ────────────────────────────────────────────────────────────
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -70,16 +79,35 @@ export function activate(context: vscode.ExtensionContext): void {
     registerInlayHintsProvider(context);
     registerCodeActionProvider(context);
     registerCodeLensProvider(context);
+    registerVariableExplorer(context);
+
+    const unitPaletteProvider = new PhysureUnitPaletteProvider(context.extensionUri);
+    context.subscriptions.push(
+        vscode.window.registerWebviewViewProvider(PhysureUnitPaletteProvider.viewType, unitPaletteProvider)
+    );
 
     // ── Commands ──────────────────────────────────────────────────────────────
     registerRunFileCommand(context);
     registerReplCommands(context);
     registerInterpreterCommand(context, statusBar);
     registerExportCommands(context);
+    registerPreviewCommand(context);
+    registerDependencyGraphCommand(context);
+    registerConvertUnitCommands(context);
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vsc-physure.showLogs', () => {
+            logger.show();
+        })
+    );
 }
+
+import { physureDaemon } from './daemon';
 
 /**
  * Called when the extension is deactivated (editor closes or extension
  * is disabled). Subscriptions registered on `context` are disposed automatically.
  */
-export function deactivate(): void {}
+export function deactivate(): void {
+    physureDaemon.stop();
+}

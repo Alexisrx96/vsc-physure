@@ -175,7 +175,7 @@ export function parseUnitListJson(stdout: string): string[] {
 
 // Regex mapping token groups from the grammar, supporting Unicode letters, Greek symbols,
 // subscripts, square roots, operators, and reaction arrows.
-const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE]\s*[+-]?\s*\d+)?|\.\d+(?:[eE]\s*[+-]?\s*\d+)?)|(?<IDENT>[\p{L}_][\p{L}\p{N}_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<SUB>[₀₁₂₃₄₅₆₇₈₉₋]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|<=|>=|!=|==|=>|->|\*\s*\*|\*\*|<|>|⇌|×|÷|√|,|:|\|)|(?<WS>[ \t]+)|(?<BAD>.)/gu;
+const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE]\s*[+-]?\s*\d+)?|\.\d+(?:[eE]\s*[+-]?\s*\d+)?)|(?<IDENT>[\p{L}_][\p{L}\p{N}_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<SUB>[₀₁₂₃₄₅₆₇₈₉₋]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|<=|>=|!=|==|=>|->|≈|\*\s*\*|\*\*|<|>|⇌|×|÷|√|,|:|\|)|(?<WS>[ \t]+)|(?<BAD>.)/gu;
 
 
 /**

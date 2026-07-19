@@ -4,15 +4,19 @@ This extension provides comprehensive native support for the **Physure Meta-Lang
 
 ## Features ✨
 
-*   **Robust Syntax Highlighting**: Semantic coloring for comments (`#`), numbers, physical units, conversion operators (`=>` / `->`), assertions (`==`), uncertainties (`+/-` or `±`), variables, and superscripts (exponents).
-*   **Rapid File Execution**: Run the active `.phs` file using the configured Python virtual environment.
+*   **Live Results Evaluation (CodeLens)**: Evaluate `.phs` calculations on demand directly within the editor. Displays `▶ Result:` annotations aligned with exact line numbers.
+*   **Export Tools**:
+    *   **Export to Python (.py)**: Convert `.phs` engineering notes into executable Python scripts using Physure quantity objects.
+    *   **Export to Markdown (.md)**: Generate clean Markdown calculation reports complete with summary tables.
+*   **Robust Syntax Highlighting**: Semantic coloring for comments (`#`), numbers, physical units, conversion operators (`=>` / `->`), assertions (`==`), uncertainties (`+/-` or `±`), variables, superscripts, and functions.
+*   **Rapid File Execution**: Run the active `.phs` file using your configured Python virtual environment.
 *   **Interactive REPL Integration**:
-    *   Initialize an interactive Physure REPL session directly in the integrated terminal.
-    *   Send the current line or selection to the REPL via keyboard shortcuts for efficient prototyping.
-*   **Real-Time Diagnostics**: Inline errors for unexpected characters and unbalanced parentheses as you type.
-*   **Unit Autocomplete**: Suggests physical units as you type, sourced live from your configured `physure` installation (falls back to a built-in list if the interpreter can't be queried).
-*   **Hover Documentation**: Hover a unit for a quick description, or a variable to see where it was defined.
-*   **Document Outline**: Every variable assignment shows up in the Outline view (`Ctrl+Shift+O`) for quick navigation.
+    *   Initialize an interactive Physure REPL session in the integrated terminal.
+    *   Send selected text or line to the REPL (`Shift + Enter`).
+*   **Python Interpreter Selector**: Quick picker command to select the active Python virtual environment containing the `physure` library.
+*   **Real-Time Diagnostics**: Inline error reporting for unexpected characters, syntax errors, and unbalanced parentheses.
+*   **Unit Autocomplete & Hover Docs**: Live unit suggestions from your active Physure environment and hover descriptions for variables and units.
+*   **Document Outline**: Variable and function definitions appear in the Outline view (`Ctrl+Shift+O`).
 
 ## Keyboard Shortcuts ⌨️
 

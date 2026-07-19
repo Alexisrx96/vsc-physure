@@ -54,6 +54,25 @@ export class PhsCodeActionProvider implements vscode.CodeActionProvider {
             actions.push(fix);
         }
 
+        // 3. Format & Conversion Specifier Helpers
+        const trimmedLine = lineText.trim();
+        if (trimmedLine && !trimmedLine.startsWith('#') && !trimmedLine.startsWith('```')) {
+            if (!lineText.includes(': base')) {
+                const fix = new vscode.CodeAction('Decompose expression to SI base units (: base)', vscode.CodeActionKind.RefactorExtract);
+                fix.edit = new vscode.WorkspaceEdit();
+                const endPos = new vscode.Position(range.start.line, lineText.length);
+                fix.edit.insert(document.uri, endPos, ': base');
+                actions.push(fix);
+            }
+            if (!lineText.includes(': frac')) {
+                const fix = new vscode.CodeAction('Format expression as exact fraction (: frac)', vscode.CodeActionKind.RefactorExtract);
+                fix.edit = new vscode.WorkspaceEdit();
+                const endPos = new vscode.Position(range.start.line, lineText.length);
+                fix.edit.insert(document.uri, endPos, ': frac');
+                actions.push(fix);
+            }
+        }
+
         // 3. Selection Refactorings (Wrap in function)
         if (!range.isEmpty) {
             const selectedText = document.getText(range);

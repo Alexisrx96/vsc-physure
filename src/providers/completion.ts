@@ -26,6 +26,30 @@ export const FORMAT_SPECIFIERS: { label: string; detail: string; doc: string; in
     { label: 'noalias', detail: 'Disable Aliases', doc: 'Disables unit aliases and displays base SI units.' }
 ];
 
+export const GREEK_SYMBOLS: { shortcut: string; symbol: string; name: string }[] = [
+    { shortcut: '\\alpha', symbol: 'α', name: 'Alpha' },
+    { shortcut: '\\beta', symbol: 'β', name: 'Beta' },
+    { shortcut: '\\gamma', symbol: 'γ', name: 'Gamma' },
+    { shortcut: '\\delta', symbol: 'δ', name: 'Delta' },
+    { shortcut: '\\epsilon', symbol: 'ε', name: 'Epsilon' },
+    { shortcut: '\\theta', symbol: 'θ', name: 'Theta' },
+    { shortcut: '\\lambda', symbol: 'λ', name: 'Lambda' },
+    { shortcut: '\\mu', symbol: 'μ', name: 'Mu' },
+    { shortcut: '\\micro', symbol: 'μ', name: 'Micro Symbol' },
+    { shortcut: '\\pi', symbol: 'π', name: 'Pi' },
+    { shortcut: '\\rho', symbol: 'ρ', name: 'Rho' },
+    { shortcut: '\\sigma', symbol: 'σ', name: 'Sigma' },
+    { shortcut: '\\tau', symbol: 'τ', name: 'Tau' },
+    { shortcut: '\\phi', symbol: 'φ', name: 'Phi' },
+    { shortcut: '\\omega', symbol: 'ω', name: 'Omega' },
+    { shortcut: '\\Delta', symbol: 'Δ', name: 'Capital Delta' },
+    { shortcut: '\\Omega', symbol: 'Ω', name: 'Capital Omega (Ohm)' },
+    { shortcut: '\\pm', symbol: '±', name: 'Plus-Minus' },
+    { shortcut: '\\sqrt', symbol: '√', name: 'Square Root' },
+    { shortcut: '\\approx', symbol: '≈', name: 'Approximately Equal' },
+    { shortcut: '\\infty', symbol: '∞', name: 'Infinity' },
+];
+
 /**
  * Provides IntelliSense completion items for the PHS language.
  *
@@ -63,6 +87,15 @@ export function registerCompletionProvider(context: vscode.ExtensionContext): vo
                     const currentLine = position.line;
                     const items: vscode.CompletionItem[] = [];
 
+                    // ── 0. Greek Letters & Math Symbols ──────────────────────────
+                    for (const sym of GREEK_SYMBOLS) {
+                        const item = new vscode.CompletionItem(sym.shortcut, vscode.CompletionItemKind.Text);
+                        item.detail = `Unicode Symbol: ${sym.symbol} (${sym.name})`;
+                        item.documentation = new vscode.MarkdownString(`Inserts Unicode symbol \`${sym.symbol}\`.`);
+                        item.insertText = sym.symbol;
+                        item.sortText = `a_0_greek_${sym.shortcut}`;
+                        items.push(item);
+                    }
 
                 // ── 1. User-defined variables and functions ──────────────────
                 for (const sym of findAssignmentSymbols(lines)) {
@@ -129,7 +162,8 @@ export function registerCompletionProvider(context: vscode.ExtensionContext): vo
         },
         ':',
         '|',
-        '.'
+        '.',
+        '\\'
     )
 );
 }

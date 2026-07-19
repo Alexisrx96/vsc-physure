@@ -25,6 +25,9 @@
     },
 
     {
+      "include": "#ternary-operator"
+    },
+    {
       "include": "#comparison-operator"
     },
     {
@@ -61,7 +64,20 @@
         {
           "name": "markup.raw.block.markdown.phs",
           "begin": "```",
-          "end": "```"
+          "end": "```",
+          "patterns": [
+            {
+              "match": "\\{([^}]+)\\}",
+              "captures": {
+                "0": {
+                  "name": "meta.embedded.expression.phs"
+                },
+                "1": {
+                  "name": "variable.other.interpolation.phs"
+                }
+              }
+            }
+          ]
         }
       ]
     },
@@ -85,7 +101,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.phs",
-          "match": "\\b(abs|round|floor|ceil|min|max|sqrt|sin|cos|tan|exp|log|ln)\\b(?=\\s*\\()"
+          "match": "\\b(abs|round|floor|ceil|min|max|sqrt|sin|cos|tan|exp|log|ln|linspace|plot)\\b(?=\\s*\\()"
         }
       ]
     },
@@ -119,7 +135,14 @@
         }
       ]
     },
-
+    "ternary-operator": {
+      "patterns": [
+        {
+          "name": "keyword.control.conditional.ternary.phs",
+          "match": "\\?|(?<=\\?.*):"
+        }
+      ]
+    },
     "uncertainty-operator": {
       "patterns": [
         {
@@ -132,7 +155,7 @@
       "patterns": [
         {
           "name": "keyword.operator.comparison.phs",
-          "match": "=="
+          "match": "<=|>=|!=|==|≈|<|>"
         }
       ]
     },
