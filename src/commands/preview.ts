@@ -611,7 +611,19 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                 if (output.includes('Error') || output.includes('Mismatch')) {
                     evalLatex = `\\quad \\text{\\textcolor{red}{[${output.replace(/[{}]/g, '')}]}}`;
                 } else {
-                    evalLatex = `\\quad \\implies \\mathbf{${output.replace(/[{}]/g, '')}}`;
+                    const rawOut = output.replace(/[{}]/g, '').trim();
+                    if (rawOut === 'True' || rawOut === 'False') {
+                        evalLatex = `\\quad \\implies \\mathbf{\\text{${rawOut}}}`;
+                    } else {
+                        const match = rawOut.match(/^([+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*(.*)$/);
+                        if (match) {
+                            const val = match[1];
+                            const unit = match[2].trim();
+                            evalLatex = unit ? `\\quad \\implies \\mathbf{${val}\\text{ ${unit}}}` : `\\quad \\implies \\mathbf{${val}}`;
+                        } else {
+                            evalLatex = `\\quad \\implies \\mathbf{\\text{${rawOut}}}`;
+                        }
+                    }
                 }
             }
 
@@ -621,10 +633,6 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                 <div class="latex-eq-container">
                     ${fullMathExpr ? `<div class="latex-eq-main">\\[ ${fullMathExpr} \\]</div>` : ''}
                     <div class="latex-eq-num">(${eqNum})</div>
-                    <div class="latex-listing">
-                        <span class="listing-tag">${t.line} ${lineNum}</span>
-                        <code>${escapeHtml(trimmed)}</code>
-                    </div>
                 </div>
             `;
         }
