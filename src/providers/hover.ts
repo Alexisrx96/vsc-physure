@@ -228,8 +228,8 @@ export function expressionToLatex(expr: string): string | undefined {
     s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\^\s*(\([^)]+\)|[A-Za-z0-9_.+-]+)/g, '$1^{$2}');
     s = s.replace(/²/g, '^{2}').replace(/³/g, '^{3}').replace(/·/g, ' \\cdot ');
 
-    // SEVENTH: Fractions (A) / (B) or var / var
-    s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\/\s*(\([^)]+\)|[A-Za-z0-9_^{}]+)/g, '\\frac{$1}{$2}');
+    // SEVENTH: Fractions (A) / (B) or var / var (including exponents on denominator e.g. (base)^2)
+    s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\/\s*(\([^)]+\)(?:\^\{[^}]+\}|\^[0-9]+)?|[A-Za-z0-9_^{}]+)/g, '\\frac{$1}{$2}');
 
     // EIGHTH: Multiplication * -> \cdot
     s = s.replace(/\*/g, ' \\cdot ');

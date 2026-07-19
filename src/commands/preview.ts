@@ -810,6 +810,11 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             overflow-x: auto;
             overflow-y: hidden;
             padding: 4px 0;
+            scrollbar-width: none;
+        }
+
+        .latex-eq-main::-webkit-scrollbar {
+            display: none;
         }
 
         .latex-eq-num {
@@ -958,6 +963,24 @@ function functionToLatex(funcLines: string[]): string | undefined {
     return `\\begin{aligned}\n${headerLatex} \\\\\n${bodyParts.join(' \\\\\n')}\n\\end{aligned}`;
 }
 
+function formatUnitLatex(unitStr: string): string {
+    let u = unitStr.trim();
+    if (!u) {
+        return '';
+    }
+
+    // Replace middle dots with \cdot
+    u = u.replace(/·/g, ' \\cdot ');
+
+    // Replace exponents ² and ³
+    u = u.replace(/²/g, '^{2}').replace(/³/g, '^{3}');
+
+    // Wrap unit letters (like kg, m, s, A, N, C, etc.) in \text{...} without affecting LaTeX macros
+    u = u.replace(/(?<!\\)\b([a-zA-Z°]+)\b/g, '\\text{$1}');
+    u = u.replace(/_/g, '\\_');
+    return u;
+}
+
 function formatResultLatex(outStr: string): string {
     let raw = outStr.replace(/[{}]/g, '').trim();
     if (!raw) {
@@ -970,9 +993,6 @@ function formatResultLatex(outStr: string): string {
 
     // Convert scientific notation like 1.602e-19 to 1.602 \times 10^{-19}
     raw = raw.replace(/(\d+(?:\.\d+)?)[eE]\s*([+-]?\d+)/g, '$1 \\times 10^{$2}');
-
-    // Convert unicode exponents ² ³ and middle dots ·
-    raw = raw.replace(/²/g, '^{2}').replace(/³/g, '^{3}').replace(/·/g, ' \\cdot ');
 
     // Round long floats in uncertainties e.g. (625.0 ± 40.01952648395531) -> (625.0 ± 40.0195)
     raw = raw.replace(/\b(\d+\.\d{4})\d+\b/g, '$1');
@@ -992,13 +1012,10 @@ function formatResultLatex(outStr: string): string {
     const match = raw.match(/^([+-]?\d+(?:\.\d+)?(?:\s*\\times\s*10\^\{[+-]?\d+\})?|\(.*?\))\s*(.*)$/);
     if (match) {
         const val = match[1];
-        let unit = match[2].trim();
-        if (unit) {
-            // Escape unit characters safely for KaTeX
-            unit = unit.replace(/([a-zA-Z°]+)/g, '\\text{$1}')
-                       .replace(/_/g, '\\_')
-                       .replace(/·/g, ' \\cdot ');
-            return `\\quad \\implies \\mathbf{${val}\\; ${unit}}`;
+        const rawUnit = match[2].trim();
+        if (rawUnit) {
+            const formattedUnit = formatUnitLatex(rawUnit);
+            return `\\quad \\implies \\mathbf{${val}\\; ${formattedUnit}}`;
         }
         return `\\quad \\implies \\mathbf{${val}}`;
     }
