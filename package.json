@@ -2,7 +2,7 @@
   "name": "vsc-physure",
   "displayName": "Physure (PHS) Support",
   "description": "Syntax highlighting, live CodeLens evaluation, interactive REPL, and export tools for Physure Meta-Lang (.phs) files",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "publisher": "irvintorres",
   "license": "MIT",
   "icon": "images/icon.png",
