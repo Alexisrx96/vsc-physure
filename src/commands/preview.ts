@@ -477,10 +477,7 @@ function buildNativeLivePreviewHtml(document: vscode.TextDocument): string {
 }
 
 /**
- * 2. STANDALONE ACADEMIC MANUSCRIPT REPORT HTML (Exported File)
- * Professional LaTeX publication paper style with Crimson Pro serif typography,
- * centered A4 paper container with paper box shadow, Booktabs tables,
- * numbered equations (1), (2), formal figure captions, and theme toggle.
+ * STANDALONE ACADEMIC MANUSCRIPT REPORT HTML (Exported File)
  */
 function buildAcademicReportHtml(document: vscode.TextDocument): string {
     const t = getI18n(document.uri);
@@ -508,7 +505,7 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             const innerText = trimmed.substring(3, trimmed.length - 3).trim();
             const interpolatedText = resultsMap.get(idx) ?? innerText;
             rowsHtml += `
-                <div class="academic-prose">
+                <div class="latex-prose">
                     <p>${escapeHtml(interpolatedText)}</p>
                 </div>
             `;
@@ -537,7 +534,7 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                     .join('');
 
                 rowsHtml += `
-                    <div class="academic-prose">
+                    <div class="latex-prose">
                         ${formattedParagraphs}
                     </div>
                 `;
@@ -574,13 +571,15 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             const eqNum = eqCounter++;
 
             rowsHtml += `
-                <div class="academic-eq-block">
-                    <div class="eq-header">
-                        <span class="eq-label">${t.definition} &bull; ${t.lines} ${funcStartLine + 1}&ndash;${idx}</span>
-                        <span class="eq-num">(${eqNum})</span>
+                <div class="latex-eq-container">
+                    <div class="latex-eq-main">
+                        ${latexFunc ? `\\[ ${latexFunc} \\]` : ''}
                     </div>
-                    ${latexFunc ? `<div class="eq-math">\\[ ${latexFunc} \\]</div>` : ''}
-                    <div class="eq-code-ref"><code>${escapeHtml(fullFuncText)}</code></div>
+                    <div class="latex-eq-num">(${eqNum})</div>
+                    <div class="latex-listing">
+                        <span class="listing-tag">${t.definition} &bull; ${t.lines} ${funcStartLine + 1}&ndash;${idx}</span>
+                        <pre><code>${escapeHtml(fullFuncText)}</code></pre>
+                    </div>
                 </div>
             `;
             continue;
@@ -595,9 +594,9 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             const b64Uri = output.substring(12, output.length - 1);
             const figNum = figCounter++;
             rowsHtml += `
-                <figure class="academic-figure">
-                    <div class="fig-img-wrapper">
-                        <img src="${b64Uri}" class="academic-fig-img" alt="Physure Figure ${figNum}" />
+                <figure class="latex-figure">
+                    <div class="fig-frame">
+                        <img src="${b64Uri}" class="fig-img" alt="Figure ${figNum}" />
                     </div>
                     <figcaption class="fig-caption">
                         <strong>${t.figure} ${figNum}.</strong> ${t.figCaptionPrefix} <code>${escapeHtml(trimmed)}</code> (${t.line} ${lineNum}).
@@ -606,26 +605,25 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             `;
         } else {
             const eqNum = eqCounter++;
-            let evalBadgeHtml = '';
+            let evalLatex = '';
 
             if (output) {
                 if (output.includes('Error') || output.includes('Mismatch')) {
-                    evalBadgeHtml = `<div class="eval-result eval-error">❌ ${escapeHtml(output)}</div>`;
+                    evalLatex = `\\quad \\text{\\textcolor{red}{[${output.replace(/[{}]/g, '')}]}}`;
                 } else {
-                    evalBadgeHtml = `<div class="eval-result eval-success">&rArr; ${escapeHtml(output)}</div>`;
+                    evalLatex = `\\quad \\implies \\mathbf{${output.replace(/[{}]/g, '')}}`;
                 }
             }
 
+            const fullMathExpr = latex ? `${latex} ${evalLatex}` : '';
+
             rowsHtml += `
-                <div class="academic-eq-block">
-                    <div class="eq-header">
-                        <span class="eq-label">${t.line} ${lineNum}</span>
-                        <span class="eq-num">(${eqNum})</span>
-                    </div>
-                    ${latex ? `<div class="eq-math">\\[ ${escapeHtml(latex)} \\]</div>` : ''}
-                    <div class="eq-body">
-                        <div class="eq-code-ref"><code>${escapeHtml(trimmed)}</code></div>
-                        ${evalBadgeHtml}
+                <div class="latex-eq-container">
+                    ${fullMathExpr ? `<div class="latex-eq-main">\\[ ${fullMathExpr} \\]</div>` : ''}
+                    <div class="latex-eq-num">(${eqNum})</div>
+                    <div class="latex-listing">
+                        <span class="listing-tag">${t.line} ${lineNum}</span>
+                        <code>${escapeHtml(trimmed)}</code>
                     </div>
                 </div>
             `;
@@ -638,356 +636,272 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
         const val = resultsMap.get(sym.line) ?? '&mdash;';
         varsHtml += `
             <tr>
-                <td><code class="sym-name">${escapeHtml(sym.name)}</code></td>
+                <td><code>${escapeHtml(sym.name)}</code></td>
                 <td>${t.line} ${sym.line + 1}</td>
-                <td class="sym-val"><strong>${escapeHtml(val)}</strong></td>
+                <td><strong>${escapeHtml(val)}</strong></td>
             </tr>
         `;
     });
+
+    const currentDateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${t.reportTitle}: ${escapeHtml(filename)}</title>
+    <title>${escapeHtml(filename)} &mdash; ${t.reportTitle}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400;1,600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/contrib/auto-render.min.js"
         onload="renderMathInElement(document.body);"></script>
     <style>
-        :root {
-            --font-paper: 'Crimson Pro', 'Georgia', 'Times New Roman', serif;
-            --font-sans: 'Inter', -apple-system, sans-serif;
-            --font-mono: 'Fira Code', monospace;
-
-            /* Light Academic Palette (Default Paper) */
-            --bg-canvas: #f4f6f9;
-            --bg-paper: #ffffff;
-            --text-primary: #1e293b;
-            --text-secondary: #475569;
-            --text-muted: #64748b;
-            
-            --border-color: #e2e8f0;
-            --border-rule: #0f172a;
-
-            --accent-primary: #0284c7;
-            --accent-success: #059669;
-            --accent-error: #dc2626;
-
-            --code-bg: #f8fafc;
-            --code-border: #e2e8f0;
-            --shadow-paper: 0 10px 30px rgba(0, 0, 0, 0.06), 0 1px 4px rgba(0, 0, 0, 0.04);
-        }
-
-        body.dark-mode {
-            /* Dark Academic Palette */
-            --bg-canvas: #0f1117;
-            --bg-paper: #181b24;
-            --text-primary: #f1f5f9;
-            --text-secondary: #cbd5e1;
-            --text-muted: #94a3b8;
-            
-            --border-color: #2e3545;
-            --border-rule: #e2e8f0;
-
-            --accent-primary: #38bdf8;
-            --accent-success: #34d399;
-            --accent-error: #f87171;
-
-            --code-bg: rgba(15, 23, 42, 0.7);
-            --code-border: rgba(255, 255, 255, 0.08);
-            --shadow-paper: 0 12px 36px rgba(0, 0, 0, 0.4);
+        @page {
+            size: A4;
+            margin: 25mm 20mm;
         }
 
         body {
-            font-family: var(--font-sans);
-            background-color: var(--bg-canvas);
-            color: var(--text-primary);
+            font-family: 'Crimson Pro', 'Georgia', 'Times New Roman', serif;
+            font-size: 11pt;
+            color: #111111;
+            background-color: #ffffff;
+            line-height: 1.6;
             margin: 0;
             padding: 40px 20px;
-            line-height: 1.7;
         }
 
-        .paper-container {
-            max-width: 880px;
+        .paper-manuscript {
+            max-width: 820px;
             margin: 0 auto;
-            background-color: var(--bg-paper);
-            padding: 56px 64px;
-            border-radius: 12px;
-            box-shadow: var(--shadow-paper);
-            border: 1px solid var(--border-color);
+            background: #ffffff;
+            padding: 0;
         }
 
-        /* Academic Article Header */
-        .academic-header {
-            border-bottom: 2px solid var(--border-rule);
-            padding-bottom: 20px;
-            margin-bottom: 32px;
-        }
-
-        .header-top {
+        /* Top Actions Bar (Print Only UI) */
+        .no-print-bar {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.82rem;
+            justify-content: flex-end;
+            margin-bottom: 24px;
+        }
+
+        .btn-print {
+            font-family: sans-serif;
+            background: #ffffff;
+            color: #333333;
+            border: 1px solid #999999;
+            padding: 6px 14px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            border-radius: 3px;
+        }
+
+        .btn-print:hover {
+            background: #f0f0f0;
+            border-color: #000000;
+        }
+
+        /* Formal Article Header */
+        .paper-header {
+            text-align: center;
+            border-top: 1.5pt solid #000000;
+            border-bottom: 1.5pt solid #000000;
+            padding: 20px 0 16px 0;
+            margin-bottom: 36px;
+        }
+
+        .paper-institution {
+            font-family: sans-serif;
+            font-size: 0.75rem;
             text-transform: uppercase;
-            letter-spacing: 1px;
-            color: var(--text-muted);
-            font-weight: 600;
-            margin-bottom: 12px;
+            letter-spacing: 1.5px;
+            color: #555555;
+            margin-bottom: 8px;
         }
 
         .paper-title {
-            font-family: var(--font-paper);
-            font-size: 2.3rem;
+            font-size: 2rem;
             font-weight: 700;
-            color: var(--text-primary);
             margin: 0 0 10px 0;
-            line-height: 1.25;
+            line-height: 1.2;
+            color: #000000;
         }
 
-        .paper-meta {
-            font-size: 0.92rem;
-            color: var(--text-secondary);
-            display: flex;
-            gap: 20px;
-            align-items: center;
+        .paper-author-meta {
+            font-style: italic;
+            font-size: 0.95rem;
+            color: #333333;
         }
 
-        .meta-tag {
-            background: rgba(2, 132, 199, 0.08);
-            color: var(--accent-primary);
-            padding: 3px 10px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: 600;
-        }
-
-        .actions-toolbar {
-            display: flex;
-            gap: 10px;
-        }
-
-        .btn-action {
-            background: var(--bg-canvas);
-            color: var(--text-primary);
-            border: 1px solid var(--border-color);
-            padding: 6px 14px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            font-weight: 600;
-            transition: all 0.2s ease;
-        }
-
-        .btn-action:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
-        }
-
-        /* Section Headings */
-        h2.sec-title {
-            font-family: var(--font-paper);
-            font-size: 1.45rem;
+        /* Formal Section Headings */
+        h2.paper-sec-title {
+            font-size: 1.3rem;
             font-weight: 700;
-            color: var(--text-primary);
-            border-bottom: 1px solid var(--border-color);
-            padding-bottom: 6px;
+            border-bottom: 0.75pt solid #000000;
+            padding-bottom: 4px;
             margin-top: 36px;
-            margin-bottom: 18px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
+            margin-bottom: 16px;
+            color: #000000;
         }
 
-        /* Academic Booktabs Table */
-        .booktabs-table {
+        /* Formal LaTeX Booktabs Table */
+        .booktabs {
             width: 100%;
             border-collapse: collapse;
             font-size: 0.95rem;
-            margin-bottom: 28px;
+            margin: 20px 0 32px 0;
         }
 
-        .booktabs-table th {
-            border-top: 2px solid var(--border-rule);
-            border-bottom: 1px solid var(--text-primary);
-            padding: 8px 12px;
+        .booktabs th {
+            border-top: 1.5pt solid #000000;
+            border-bottom: 0.75pt solid #000000;
+            padding: 6px 10px;
             text-align: left;
-            font-weight: 600;
-            color: var(--text-primary);
+            font-weight: bold;
+            color: #000000;
         }
 
-        .booktabs-table td {
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border-color);
-            color: var(--text-secondary);
+        .booktabs td {
+            padding: 7px 10px;
+            border-bottom: none;
+            color: #111111;
         }
 
-        .booktabs-table tr:last-child td {
-            border-bottom: 2px solid var(--border-rule);
+        .booktabs tr:last-child td {
+            border-bottom: 1.5pt solid #000000;
         }
 
-        .sym-name {
-            font-family: var(--font-mono);
-            color: var(--accent-primary);
-            font-weight: 600;
+        .booktabs code {
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.88rem;
         }
 
-        .sym-val {
-            color: var(--accent-success);
-        }
-
-        /* Academic Prose / Paragraphs */
-        .academic-prose {
-            font-family: var(--font-paper);
-            font-size: 1.15rem;
-            color: var(--text-primary);
-            line-height: 1.8;
-            margin-bottom: 20px;
-        }
-
-        .academic-prose p {
-            margin: 0 0 12px 0;
+        /* Prose Paragraphs */
+        .latex-prose {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            margin-bottom: 18px;
             text-align: justify;
         }
 
-        /* Equation Block */
-        .academic-eq-block {
-            background-color: var(--code-bg);
-            border: 1px solid var(--code-border);
-            border-radius: 8px;
-            padding: 16px 20px;
-            margin-bottom: 18px;
+        .latex-prose p {
+            margin: 0 0 10px 0;
+            text-indent: 1.5em;
         }
 
-        .eq-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-bottom: 6px;
+        .latex-prose p:first-child {
+            text-indent: 0;
         }
 
-        .eq-num {
-            font-weight: 600;
-            font-family: var(--font-mono);
+        /* Equations */
+        .latex-eq-container {
+            position: relative;
+            margin: 20px 0;
+            page-break-inside: avoid;
         }
 
-        .eq-math {
-            font-size: 1.25rem;
-            margin: 12px 0;
+        .latex-eq-main {
+            font-size: 1.2rem;
             text-align: center;
+            margin: 10px 0;
         }
 
-        .eq-body {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 10px;
+        .latex-eq-num {
+            position: absolute;
+            right: 0;
+            top: 50%;
+            transform: translateY(-50%);
+            font-family: 'Crimson Pro', serif;
+            font-size: 1rem;
+            color: #000000;
         }
 
-        .eq-code-ref {
-            font-family: var(--font-mono);
-            font-size: 0.88rem;
-            color: var(--text-secondary);
-            overflow-x: auto;
+        .latex-listing {
+            background-color: #fafafa;
+            border: 0.5pt solid #d1d5db;
+            padding: 6px 12px;
+            margin-top: 6px;
+            font-family: 'Fira Code', 'Courier New', monospace;
+            font-size: 0.82rem;
+            color: #444444;
         }
 
-        .eval-result {
-            font-family: var(--font-mono);
-            font-size: 0.88rem;
-            font-weight: 600;
-            word-break: break-word;
-            overflow-wrap: anywhere;
-            white-space: pre-wrap;
-            padding: 8px 12px;
-            border-radius: 6px;
-            max-height: 180px;
-            overflow-y: auto;
-        }
-
-        .eval-success {
-            color: var(--accent-success);
-            background: rgba(5, 150, 105, 0.08);
-            border: 1px solid rgba(5, 150, 105, 0.25);
-        }
-
-        .eval-error {
-            color: var(--accent-error);
-            background: rgba(220, 38, 38, 0.08);
-            border: 1px solid rgba(220, 38, 38, 0.25);
-        }
-
-        /* Formal Academic Figures */
-        .academic-figure {
-            margin: 28px 0;
-            text-align: center;
-        }
-
-        .fig-img-wrapper {
-            background-color: #ffffff;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            padding: 12px;
-            display: inline-block;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.06);
-        }
-
-        .academic-fig-img {
-            max-width: 100%;
-            height: auto;
-            border-radius: 4px;
+        .listing-tag {
+            font-family: sans-serif;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #777777;
             display: block;
+            margin-bottom: 2px;
+        }
+
+        .latex-listing code, .latex-listing pre {
+            margin: 0;
+            font-family: inherit;
+            white-space: pre-wrap;
+        }
+
+        /* Figures */
+        .latex-figure {
+            margin: 32px 0;
+            text-align: center;
+            page-break-inside: avoid;
+        }
+
+        .fig-frame {
+            display: inline-block;
+            border: 0.5pt solid #cccccc;
+            padding: 8px;
+            background: #ffffff;
+        }
+
+        .fig-img {
+            max-width: 92%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
         }
 
         .fig-caption {
             font-size: 0.88rem;
-            color: var(--text-secondary);
+            color: #333333;
             margin-top: 10px;
             font-style: italic;
         }
 
         @media print {
+            .no-print-bar {
+                display: none !important;
+            }
             body {
-                background: #ffffff;
                 padding: 0;
             }
-            .paper-container {
-                box-shadow: none;
-                border: none;
-                padding: 0;
+            .paper-manuscript {
                 max-width: 100%;
-            }
-            .actions-toolbar {
-                display: none;
             }
         }
     </style>
 </head>
 <body>
-    <div class="paper-container">
-        <header class="academic-header">
-            <div class="header-top">
-                <span>${t.subTitle}</span>
-                <div class="actions-toolbar">
-                    <button class="btn-action" onclick="toggleTheme()">${t.themeToggle}</button>
-                    <button class="btn-action" onclick="window.print()">${t.printPdf}</button>
-                </div>
-            </div>
+    <div class="paper-manuscript">
+        <div class="no-print-bar">
+            <button class="btn-print" onclick="window.print()">${t.printPdf}</button>
+        </div>
+
+        <header class="paper-header">
+            <div class="paper-institution">${t.subTitle}</div>
             <h1 class="paper-title">${escapeHtml(filename)}</h1>
-            <div class="paper-meta">
-                <span class="meta-tag">${t.academicTag}</span>
-                <span>${t.autoGenerated}</span>
+            <div class="paper-author-meta">
+                <span>Physure Technical Computation Engine &bull; ${currentDateStr}</span>
             </div>
         </header>
 
-        <h2 class="sec-title">${t.secVariables}</h2>
-        <table class="booktabs-table">
+        <h2 class="paper-sec-title">${t.secVariables}</h2>
+        <table class="booktabs">
             <thead>
                 <tr>
                     <th>${t.symbol}</th>
@@ -996,19 +910,13 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                 </tr>
             </thead>
             <tbody>
-                ${varsHtml || `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">${t.noVariables}</td></tr>`}
+                ${varsHtml || `<tr><td colspan="3" style="text-align: center; color: #666666;">${t.noVariables}</td></tr>`}
             </tbody>
         </table>
 
-        <h2 class="sec-title">${t.secSequence}</h2>
-        ${rowsHtml || `<p style="color: var(--text-muted);">${t.noExpressions}</p>`}
+        <h2 class="paper-sec-title">${t.secSequence}</h2>
+        ${rowsHtml || `<p style="color: #666666;">${t.noExpressions}</p>`}
     </div>
-
-    <script>
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-        }
-    </script>
 </body>
 </html>`;
 }
