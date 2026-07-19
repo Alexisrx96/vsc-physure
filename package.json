@@ -292,6 +292,20 @@
           "default": 600,
           "description": "Debounce delay in milliseconds before recalculating live evaluation while typing. Higher values reduce CPU and memory usage.",
           "scope": "resource"
+        },
+        "vsc-physure.language": {
+          "type": "string",
+          "enum": [
+            "en",
+            "es"
+          ],
+          "enumDescriptions": [
+            "English (default primary academic language)",
+            "Spanish (Español)"
+          ],
+          "default": "en",
+          "description": "Language for Physure live preview reports and export output ('en' for English, 'es' for Spanish).",
+          "scope": "resource"
         }
       }
     }

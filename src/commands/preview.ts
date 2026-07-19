@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { getCachedLineResults, onInlayHintsChangeEvent } from '../providers/evalCodeLens';
 import { findAssignmentSymbols } from '../tokenizer';
 import { expressionToLatex } from '../providers/hover';
+import { getI18n, getLanguage } from '../i18n';
 
 let currentPanel: vscode.WebviewPanel | undefined;
 
@@ -29,6 +30,7 @@ export function registerPreviewCommand(context: vscode.ExtensionContext): void {
 
                 currentPanel.webview.onDidReceiveMessage(async (message) => {
                     if (message.command === 'exportHtml' && activeEditor) {
+                        const t = getI18n(activeEditor.document.uri);
                         const defaultUri = vscode.Uri.file(activeEditor.document.fileName.replace(/\.phs$/, '.report.html'));
                         const uri = await vscode.window.showSaveDialog({
                             defaultUri,
@@ -40,7 +42,7 @@ export function registerPreviewCommand(context: vscode.ExtensionContext): void {
                             // Transform VS Code webview specific UI into standalone report HTML
                             cleanHtml = cleanHtml.replace(
                                 /<button class="btn-action" onclick="exportReport\(\)">.*?<\/button>/g,
-                                '<button class="btn-action" onclick="window.print()">🖨️ Imprimir / PDF</button>'
+                                `<button class="btn-action" onclick="window.print()">${t.printPdf}</button>`
                             );
                             cleanHtml = cleanHtml.replace(
                                 /let vscode;[\s\S]*?function exportReport\(\) \{[\s\S]*?\}/g,
@@ -93,6 +95,8 @@ function updateWebviewContent(document: vscode.TextDocument): void {
         return;
     }
 
+    const t = getI18n(document.uri);
+    const lang = getLanguage(document.uri);
     const filename = document.fileName.split('/').pop() ?? 'Document';
     const text = document.getText();
     const lines = text.split('\n');
@@ -185,7 +189,7 @@ function updateWebviewContent(document: vscode.TextDocument): void {
             rowsHtml += `
                 <div class="academic-eq-block">
                     <div class="eq-header">
-                        <span class="eq-label">Definition &bull; Lines ${funcStartLine + 1}&ndash;${idx}</span>
+                        <span class="eq-label">${t.definition} &bull; ${t.lines} ${funcStartLine + 1}&ndash;${idx}</span>
                         <span class="eq-num">(${eqNum})</span>
                     </div>
                     ${latexFunc ? `<div class="eq-math">\\[ ${latexFunc} \\]</div>` : ''}
@@ -209,7 +213,7 @@ function updateWebviewContent(document: vscode.TextDocument): void {
                         <img src="${b64Uri}" class="academic-fig-img" alt="Physure Figure ${figNum}" />
                     </div>
                     <figcaption class="fig-caption">
-                        <strong>Figura ${figNum}.</strong> Representación gráfica generada a partir de <code>${escapeHtml(trimmed)}</code> (Línea ${lineNum}).
+                        <strong>${t.figure} ${figNum}.</strong> ${t.figCaptionPrefix} <code>${escapeHtml(trimmed)}</code> (${t.line} ${lineNum}).
                     </figcaption>
                 </figure>
             `;
@@ -228,7 +232,7 @@ function updateWebviewContent(document: vscode.TextDocument): void {
             rowsHtml += `
                 <div class="academic-eq-block">
                     <div class="eq-header">
-                        <span class="eq-label">Línea ${lineNum}</span>
+                        <span class="eq-label">${t.line} ${lineNum}</span>
                         <span class="eq-num">(${eqNum})</span>
                     </div>
                     ${latex ? `<div class="eq-math">\\[ ${escapeHtml(latex)} \\]</div>` : ''}
@@ -248,7 +252,7 @@ function updateWebviewContent(document: vscode.TextDocument): void {
         varsHtml += `
             <tr>
                 <td><code class="sym-name">${escapeHtml(sym.name)}</code></td>
-                <td>Línea ${sym.line + 1}</td>
+                <td>${t.line} ${sym.line + 1}</td>
                 <td class="sym-val"><strong>${escapeHtml(val)}</strong></td>
             </tr>
         `;
@@ -582,35 +586,35 @@ function updateWebviewContent(document: vscode.TextDocument): void {
     <div class="paper-container">
         <header class="academic-header">
             <div class="header-top">
-                <span>Physure Computational Report</span>
+                <span>${t.subTitle}</span>
                 <div class="actions-toolbar">
-                    <button class="btn-action" onclick="toggleTheme()">🌓 Tema</button>
-                    <button class="btn-action" onclick="exportReport()">📥 Exportar Reporte</button>
+                    <button class="btn-action" onclick="toggleTheme()">${t.themeToggle}</button>
+                    <button class="btn-action" onclick="exportReport()">${t.exportReport}</button>
                 </div>
             </div>
             <h1 class="paper-title">${escapeHtml(filename)}</h1>
             <div class="paper-meta">
-                <span class="meta-tag">Reporte Académico</span>
-                <span>Generado automáticamente por Physure Engine</span>
+                <span class="meta-tag">${t.academicTag}</span>
+                <span>${t.autoGenerated}</span>
             </div>
         </header>
 
-        <h2 class="sec-title">1. Resumen de Variables y Magnitudes</h2>
+        <h2 class="sec-title">${t.secVariables}</h2>
         <table class="booktabs-table">
             <thead>
                 <tr>
-                    <th>Símbolo</th>
-                    <th>Ubicación</th>
-                    <th>Valor Evaluado</th>
+                    <th>${t.symbol}</th>
+                    <th>${t.location}</th>
+                    <th>${t.evaluatedValue}</th>
                 </tr>
             </thead>
             <tbody>
-                ${varsHtml || '<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">No se registraron asignaciones de variables.</td></tr>'}
+                ${varsHtml || `<tr><td colspan="3" style="text-align: center; color: var(--text-muted);">${t.noVariables}</td></tr>`}
             </tbody>
         </table>
 
-        <h2 class="sec-title">2. Secuencia de Cálculos y Expresiones</h2>
-        ${rowsHtml || '<p style="color: var(--text-muted);">No se detectaron expresiones evaluadas.</p>'}
+        <h2 class="sec-title">${t.secSequence}</h2>
+        ${rowsHtml || `<p style="color: var(--text-muted);">${t.noExpressions}</p>`}
     </div>
 
     <script>
