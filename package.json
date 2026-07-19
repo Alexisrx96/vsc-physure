@@ -5,7 +5,7 @@
   "version": "0.2.0",
   "publisher": "irvintorres",
   "license": "MIT",
-  "icon": "icon.jpg",
+  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.93.0"
   },
