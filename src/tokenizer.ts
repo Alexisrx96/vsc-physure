@@ -568,17 +568,27 @@ export function extractMetadata(lines: string[]): PhysureMetadata {
 
         if (inFrontmatter || line.startsWith('# @') || line.startsWith('#@')) {
             const cleanLine = line.replace(/^#\s*@?/, '').trim();
+            let key = '';
+            let val = '';
             const colonIdx = cleanLine.indexOf(':');
-            if (colonIdx > 0) {
-                const key = cleanLine.substring(0, colonIdx).trim().toLowerCase();
-                const val = cleanLine.substring(colonIdx + 1).trim();
-                if (key === 'title' || key === 'titulo') meta.title = val;
-                else if (key === 'author' || key === 'autor') meta.author = val;
-                else if (key === 'institution' || key === 'institucion') meta.institution = val;
-                else if (key === 'date' || key === 'fecha') meta.date = val;
-                else if (key === 'abstract' || key === 'resumen') meta.abstract = val;
-                else if (key === 'keywords' || key === 'palabras_clave') meta.keywords = val;
+            const spaceIdx = cleanLine.search(/\s/);
+
+            if (colonIdx > 0 && (spaceIdx === -1 || colonIdx < spaceIdx)) {
+                key = cleanLine.substring(0, colonIdx).trim().toLowerCase();
+                val = cleanLine.substring(colonIdx + 1).trim();
+            } else if (spaceIdx > 0) {
+                key = cleanLine.substring(0, spaceIdx).trim().toLowerCase();
+                val = cleanLine.substring(spaceIdx + 1).trim();
+            } else {
+                key = cleanLine.toLowerCase();
             }
+
+            if (key === 'title' || key === 'titulo') meta.title = val;
+            else if (key === 'author' || key === 'autor') meta.author = val;
+            else if (key === 'institution' || key === 'institucion') meta.institution = val;
+            else if (key === 'date' || key === 'fecha') meta.date = val;
+            else if (key === 'abstract' || key === 'resumen') meta.abstract = val;
+            else if (key === 'keywords' || key === 'palabras_clave') meta.keywords = val;
         }
     }
 
