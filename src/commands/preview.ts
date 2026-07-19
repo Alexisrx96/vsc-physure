@@ -36,7 +36,18 @@ export function registerPreviewCommand(context: vscode.ExtensionContext): void {
                         });
 
                         if (uri && currentPanel) {
-                            await vscode.workspace.fs.writeFile(uri, Buffer.from(currentPanel.webview.html, 'utf8'));
+                            let cleanHtml = currentPanel.webview.html;
+                            // Transform VS Code webview specific UI into standalone report HTML
+                            cleanHtml = cleanHtml.replace(
+                                /<button class="btn-action" onclick="exportReport\(\)">.*?<\/button>/g,
+                                '<button class="btn-action" onclick="window.print()">🖨️ Imprimir / PDF</button>'
+                            );
+                            cleanHtml = cleanHtml.replace(
+                                /let vscode;[\s\S]*?function exportReport\(\) \{[\s\S]*?\}/g,
+                                ''
+                            );
+
+                            await vscode.workspace.fs.writeFile(uri, Buffer.from(cleanHtml, 'utf8'));
                             vscode.window.showInformationMessage(`Physure report exported successfully to ${uri.fsPath}`);
                         }
                     }
@@ -603,9 +614,16 @@ function updateWebviewContent(document: vscode.TextDocument): void {
     </div>
 
     <script>
-        const vscode = acquireVsCodeApi();
+        let vscode;
+        if (typeof acquireVsCodeApi !== 'undefined') {
+            vscode = acquireVsCodeApi();
+        }
         function exportReport() {
-            vscode.postMessage({ command: 'exportHtml' });
+            if (vscode) {
+                vscode.postMessage({ command: 'exportHtml' });
+            } else {
+                window.print();
+            }
         }
         function toggleTheme() {
             document.body.classList.toggle('dark-mode');
