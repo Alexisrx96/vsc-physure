@@ -604,18 +604,41 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                 </figure>
             `;
         } else {
-            const eqNum = eqCounter++;
-            let evalLatex = '';
-
-            if (output) {
-                if (output.includes('Error') || output.includes('Mismatch')) {
-                    evalLatex = `\\quad \\text{\\textcolor{red}{[${output.replace(/[{}]/g, '')}]}}`;
-                } else {
-                    evalLatex = formatResultLatex(output);
-                }
+            // Skip lines with no math and no evaluation output
+            if (!latex && !output) {
+                idx++;
+                continue;
             }
 
-            const fullMathExpr = latex ? `${latex} ${evalLatex}` : '';
+            const eqNum = eqCounter++;
+            let fullMathExpr = '';
+
+            if (output && (output.includes('Error') || output.includes('Mismatch'))) {
+                const errText = output.replace(/[{}]/g, '');
+                fullMathExpr = latex ? `${latex} \\quad \\text{\\textcolor{red}{[${errText}]}}` : `\\text{\\textcolor{red}{[${errText}]}}`;
+            } else if (latex && output) {
+                const evalLatex = formatResultLatex(output);
+                const cleanResult = evalLatex.replace(/^\\quad\s*/, '');
+                const combinedLength = latex.length + cleanResult.length;
+
+                // For long equations or complex expressions, break into 2 aligned lines at '=' and '\implies'
+                if (combinedLength > 45 || latex.includes('\\frac') || latex.includes('\\sqrt') || latex.includes('linspace')) {
+                    let lhsRhs = latex;
+                    if (lhsRhs.includes('=')) {
+                        lhsRhs = lhsRhs.replace('=', '&amp;=');
+                    } else {
+                        lhsRhs = `&amp; ${lhsRhs}`;
+                    }
+                    fullMathExpr = `\\begin{aligned} ${lhsRhs} \\\\ &amp;${cleanResult} \\end{aligned}`;
+                } else {
+                    fullMathExpr = `${latex} ${evalLatex}`;
+                }
+            } else if (latex) {
+                fullMathExpr = latex;
+            } else if (output) {
+                const evalLatex = formatResultLatex(output);
+                fullMathExpr = evalLatex.replace(/^\\quad\s*/, '');
+            }
 
             rowsHtml += `
                 <div class="latex-eq-container">
