@@ -484,10 +484,9 @@ function updateWebviewContent(document: vscode.TextDocument): void {
 
         .eq-body {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 16px;
-            margin-top: 8px;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 10px;
         }
 
         .eq-code-ref {
@@ -499,17 +498,27 @@ function updateWebviewContent(document: vscode.TextDocument): void {
 
         .eval-result {
             font-family: var(--font-mono);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             font-weight: 600;
-            white-space: nowrap;
+            word-break: break-word;
+            overflow-wrap: anywhere;
+            white-space: pre-wrap;
+            padding: 8px 12px;
+            border-radius: 6px;
+            max-height: 180px;
+            overflow-y: auto;
         }
 
         .eval-success {
             color: var(--accent-success);
+            background: rgba(5, 150, 105, 0.08);
+            border: 1px solid rgba(5, 150, 105, 0.25);
         }
 
         .eval-error {
             color: var(--accent-error);
+            background: rgba(220, 38, 38, 0.08);
+            border: 1px solid rgba(220, 38, 38, 0.25);
         }
 
         /* Formal Academic Figures */
