@@ -611,19 +611,7 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                 if (output.includes('Error') || output.includes('Mismatch')) {
                     evalLatex = `\\quad \\text{\\textcolor{red}{[${output.replace(/[{}]/g, '')}]}}`;
                 } else {
-                    const rawOut = output.replace(/[{}]/g, '').trim();
-                    if (rawOut === 'True' || rawOut === 'False') {
-                        evalLatex = `\\quad \\implies \\mathbf{\\text{${rawOut}}}`;
-                    } else {
-                        const match = rawOut.match(/^([+-]?\d+(?:\.\d+)?(?:e[+-]?\d+)?)\s*(.*)$/);
-                        if (match) {
-                            const val = match[1];
-                            const unit = match[2].trim();
-                            evalLatex = unit ? `\\quad \\implies \\mathbf{${val}\\text{ ${unit}}}` : `\\quad \\implies \\mathbf{${val}}`;
-                        } else {
-                            evalLatex = `\\quad \\implies \\mathbf{\\text{${rawOut}}}`;
-                        }
-                    }
+                    evalLatex = formatResultLatex(output);
                 }
             }
 
@@ -806,25 +794,30 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
 
         /* Equations */
         .latex-eq-container {
-            position: relative;
-            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            margin: 16px 0;
             page-break-inside: avoid;
         }
 
         .latex-eq-main {
-            font-size: 1.2rem;
+            flex: 1;
+            min-width: 0;
+            font-size: 1.15rem;
             text-align: center;
-            margin: 10px 0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            padding: 4px 0;
         }
 
         .latex-eq-num {
-            position: absolute;
-            right: 0;
-            top: 50%;
-            transform: translateY(-50%);
+            flex-shrink: 0;
             font-family: 'Crimson Pro', serif;
             font-size: 1rem;
             color: #000000;
+            white-space: nowrap;
         }
 
         .latex-listing {
@@ -963,4 +956,52 @@ function functionToLatex(funcLines: string[]): string | undefined {
     }
 
     return `\\begin{aligned}\n${headerLatex} \\\\\n${bodyParts.join(' \\\\\n')}\n\\end{aligned}`;
+}
+
+function formatResultLatex(outStr: string): string {
+    let raw = outStr.replace(/[{}]/g, '').trim();
+    if (!raw) {
+        return '';
+    }
+
+    if (raw === 'True' || raw === 'False') {
+        return `\\quad \\implies \\mathbf{\\text{${raw}}}`;
+    }
+
+    // Convert scientific notation like 1.602e-19 to 1.602 \times 10^{-19}
+    raw = raw.replace(/(\d+(?:\.\d+)?)[eE]\s*([+-]?\d+)/g, '$1 \\times 10^{$2}');
+
+    // Convert unicode exponents ² ³ and middle dots ·
+    raw = raw.replace(/²/g, '^{2}').replace(/³/g, '^{3}').replace(/·/g, ' \\cdot ');
+
+    // Round long floats in uncertainties e.g. (625.0 ± 40.01952648395531) -> (625.0 ± 40.0195)
+    raw = raw.replace(/\b(\d+\.\d{4})\d+\b/g, '$1');
+
+    // Handle array / linspace results: [0.01 0.02 0.03 ... 0.50]
+    if (raw.startsWith('[') && raw.endsWith(']')) {
+        const elements = raw.substring(1, raw.length - 1).trim().split(/\s+/);
+        if (elements.length > 8) {
+            const head = elements.slice(0, 4).join(', ');
+            const tail = elements.slice(-2).join(', ');
+            return `\\quad \\implies \\mathbf{[${head}, \\dots, ${tail}]}`;
+        }
+        return `\\quad \\implies \\mathbf{[${elements.join(', ')}]}`;
+    }
+
+    // Format magnitude + unit
+    const match = raw.match(/^([+-]?\d+(?:\.\d+)?(?:\s*\\times\s*10\^\{[+-]?\d+\})?|\(.*?\))\s*(.*)$/);
+    if (match) {
+        const val = match[1];
+        let unit = match[2].trim();
+        if (unit) {
+            // Escape unit characters safely for KaTeX
+            unit = unit.replace(/([a-zA-Z°]+)/g, '\\text{$1}')
+                       .replace(/_/g, '\\_')
+                       .replace(/·/g, ' \\cdot ');
+            return `\\quad \\implies \\mathbf{${val}\\; ${unit}}`;
+        }
+        return `\\quad \\implies \\mathbf{${val}}`;
+    }
+
+    return `\\quad \\implies \\mathbf{\\text{${raw.replace(/_/g, '\\_')}}}`;
 }

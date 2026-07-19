@@ -207,34 +207,37 @@ export function expressionToLatex(expr: string): string | undefined {
         }
     }
 
-    // FIRST: Exponents ** -> ^
+    // FIRST: Convert => to \rightarrow
+    s = s.replace(/=>/g, ' \\rightarrow ');
+
+    // SECOND: Exponents ** -> ^
     s = s.replace(/\*\s*\*/g, '^');
 
-    // SECOND: Convert uncertainties +/- or ± -> \pm and ≈ -> \approx
+    // THIRD: Convert uncertainties +/- or ± -> \pm and ≈ -> \approx
     s = s.replace(/\+\/-\s*|\s*±\s*/g, ' \\pm ');
     s = s.replace(/≈/g, ' \\approx ');
 
-    // THIRD: Convert functions like sqrt(...) and round(...)
+    // FOURTH: Convert functions like sqrt(...) and round(...)
     s = s.replace(/sqrt\((.*)\)/g, '\\sqrt{$1}');
     s = s.replace(/round\(([^,]+),\s*([^)]+)\)/g, '\\text{round}($1, $2)');
 
-    // FOURTH: Protect unit divisions like m / s, km / h, N / C^2 inside simple unit phrases or function calls
+    // FIFTH: Protect unit divisions like m / s, km / h, N / C^2 inside simple unit phrases
     s = s.replace(/(\b[a-zA-Z_]+\b)\s*\/\s*(\b[a-zA-Z_]+\b)/g, '$1/$2');
 
-    // FIFTH: Exponents: (base)^exp or var^exp
+    // SIXTH: Exponents: (base)^exp or var^exp
     s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\^\s*(\([^)]+\)|[A-Za-z0-9_.+-]+)/g, '$1^{$2}');
-    s = s.replace(/²/g, '^{2}').replace(/³/g, '^{3}');
+    s = s.replace(/²/g, '^{2}').replace(/³/g, '^{3}').replace(/·/g, ' \\cdot ');
 
-    // SIXTH: Fractions (A) / (B) or var / var
+    // SEVENTH: Fractions (A) / (B) or var / var
     s = s.replace(/(\([^)]+\)|[A-Za-z0-9_]+)\s*\/\s*(\([^)]+\)|[A-Za-z0-9_^{}]+)/g, '\\frac{$1}{$2}');
 
-    // SEVENTH: Multiplication * -> \cdot
+    // EIGHTH: Multiplication * -> \cdot
     s = s.replace(/\*/g, ' \\cdot ');
 
-    // EIGHTH: Scientific notation 1.67e-27 -> 1.67 \times 10^{-27}
+    // NINTH: Scientific notation 1.67e-27 -> 1.67 \times 10^{-27}
     s = s.replace(/(\d+(?:\.\d+)?)[eE]\s*([+-]?\d+)/g, '$1 \\times 10^{$2}');
 
-    // NINTH: Wrap multi-letter identifiers containing underscores in \text{...}
+    // TENTH: Wrap multi-letter identifiers containing underscores in \text{...}
     s = s.replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, (word) => {
         if (word.includes('_')) {
             const escaped = word.replace(/_/g, '\\_');
