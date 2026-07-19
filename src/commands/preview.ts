@@ -576,10 +576,6 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
                         ${latexFunc ? `\\[ ${latexFunc} \\]` : ''}
                     </div>
                     <div class="latex-eq-num">(${eqNum})</div>
-                    <div class="latex-listing">
-                        <span class="listing-tag">${t.definition} &bull; ${t.lines} ${funcStartLine + 1}&ndash;${idx}</span>
-                        <pre><code>${escapeHtml(fullFuncText)}</code></pre>
-                    </div>
                 </div>
             `;
             continue;
@@ -848,32 +844,6 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             white-space: nowrap;
         }
 
-        .latex-listing {
-            background-color: #fafafa;
-            border: 0.5pt solid #d1d5db;
-            padding: 6px 12px;
-            margin-top: 6px;
-            font-family: 'Fira Code', 'Courier New', monospace;
-            font-size: 0.82rem;
-            color: #444444;
-        }
-
-        .listing-tag {
-            font-family: sans-serif;
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            color: #777777;
-            display: block;
-            margin-bottom: 2px;
-        }
-
-        .latex-listing code, .latex-listing pre {
-            margin: 0;
-            font-family: inherit;
-            white-space: pre-wrap;
-        }
-
         /* Figures */
         .latex-figure {
             margin: 32px 0;
@@ -1031,10 +1001,14 @@ function formatResultLatex(outStr: string): string {
         return `\\quad \\implies \\mathbf{[${elements.join(', ')}]}`;
     }
 
-    // Format magnitude + unit
-    const match = raw.match(/^([+-]?\d+(?:\.\d+)?(?:\s*\\times\s*10\^\{[+-]?\d+\})?|\(.*?\))\s*(.*)$/);
+    // Format magnitude + unit (including rational fractions e.g. 500/1 N or 1/2 m)
+    const match = raw.match(/^([+-]?\d+(?:\/\d+|\.\d+)?(?:\s*\\times\s*10\^\{[+-]?\d+\})?|\(.*?\))\s*(.*)$/);
     if (match) {
-        const val = match[1];
+        let val = match[1];
+        if (val.includes('/')) {
+            const [num, den] = val.split('/');
+            val = `\\frac{${num}}{${den}}`;
+        }
         const rawUnit = match[2].trim();
         if (rawUnit) {
             const formattedUnit = formatUnitLatex(rawUnit);
