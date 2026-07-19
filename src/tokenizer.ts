@@ -540,3 +540,47 @@ export function findAllOccurrences(
 
     return results;
 }
+
+export interface PhysureMetadata {
+    title?: string;
+    author?: string;
+    institution?: string;
+    date?: string;
+    abstract?: string;
+    keywords?: string;
+}
+
+export function extractMetadata(lines: string[]): PhysureMetadata {
+    const meta: PhysureMetadata = {};
+    let inFrontmatter = false;
+
+    for (let i = 0; i < Math.min(lines.length, 35); i++) {
+        const line = lines[i].trim();
+
+        if (line === '#---' || line === '# ===' || line === '#---meta' || line === '#---metadata') {
+            if (inFrontmatter) {
+                break;
+            } else {
+                inFrontmatter = true;
+                continue;
+            }
+        }
+
+        if (inFrontmatter || line.startsWith('# @') || line.startsWith('#@')) {
+            const cleanLine = line.replace(/^#\s*@?/, '').trim();
+            const colonIdx = cleanLine.indexOf(':');
+            if (colonIdx > 0) {
+                const key = cleanLine.substring(0, colonIdx).trim().toLowerCase();
+                const val = cleanLine.substring(colonIdx + 1).trim();
+                if (key === 'title' || key === 'titulo') meta.title = val;
+                else if (key === 'author' || key === 'autor') meta.author = val;
+                else if (key === 'institution' || key === 'institucion') meta.institution = val;
+                else if (key === 'date' || key === 'fecha') meta.date = val;
+                else if (key === 'abstract' || key === 'resumen') meta.abstract = val;
+                else if (key === 'keywords' || key === 'palabras_clave') meta.keywords = val;
+            }
+        }
+    }
+
+    return meta;
+}

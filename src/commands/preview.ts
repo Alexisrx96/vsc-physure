@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { getCachedLineResults, onInlayHintsChangeEvent } from '../providers/evalCodeLens';
-import { findAssignmentSymbols } from '../tokenizer';
+import { findAssignmentSymbols, extractMetadata } from '../tokenizer';
 import { expressionToLatex } from '../providers/hover';
 import { getI18n, getLanguage } from '../i18n';
 
@@ -658,14 +658,31 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
         `;
     });
 
+    const meta = extractMetadata(lines);
+    const paperTitle = meta.title ? escapeHtml(meta.title) : escapeHtml(filename);
+    const paperInst = meta.institution ? escapeHtml(meta.institution) : t.subTitle;
     const currentDateStr = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+    const paperDate = meta.date ? escapeHtml(meta.date) : currentDateStr;
+    const paperAuthor = meta.author ? escapeHtml(meta.author) : '';
+    const paperMetaText = [paperAuthor, paperDate, 'Physure Computation Engine'].filter(Boolean).join(' &bull; ');
+
+    let abstractBlockHtml = '';
+    if (meta.abstract) {
+        const abstractLabel = getLanguage() === 'es' ? 'Resumen' : 'Abstract';
+        abstractBlockHtml = `
+            <div class="latex-abstract">
+                <div class="abstract-title">${abstractLabel}</div>
+                <p>${escapeHtml(meta.abstract)}</p>
+            </div>
+        `;
+    }
 
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${escapeHtml(filename)} &mdash; ${t.reportTitle}</title>
+    <title>${paperTitle} &mdash; ${t.reportTitle}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -725,7 +742,7 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             border-top: 1.5pt solid #000000;
             border-bottom: 1.5pt solid #000000;
             padding: 20px 0 16px 0;
-            margin-bottom: 36px;
+            margin-bottom: 32px;
         }
 
         .paper-institution {
@@ -749,6 +766,29 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
             font-style: italic;
             font-size: 0.95rem;
             color: #333333;
+        }
+
+        /* Abstract Section */
+        .latex-abstract {
+            width: 86%;
+            margin: 0 auto 36px auto;
+            font-size: 0.95rem;
+            font-style: italic;
+            line-height: 1.6;
+            text-align: justify;
+            border-left: 2pt solid #000000;
+            padding-left: 16px;
+        }
+
+        .abstract-title {
+            font-family: sans-serif;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            margin-bottom: 6px;
+            font-style: normal;
+            color: #000000;
         }
 
         /* Formal Section Headings */
@@ -892,12 +932,14 @@ function buildAcademicReportHtml(document: vscode.TextDocument): string {
         </div>
 
         <header class="paper-header">
-            <div class="paper-institution">${t.subTitle}</div>
-            <h1 class="paper-title">${escapeHtml(filename)}</h1>
+            <div class="paper-institution">${paperInst}</div>
+            <h1 class="paper-title">${paperTitle}</h1>
             <div class="paper-author-meta">
-                <span>Physure Technical Computation Engine &bull; ${currentDateStr}</span>
+                <span>${paperMetaText}</span>
             </div>
         </header>
+
+        ${abstractBlockHtml}
 
         <h2 class="paper-sec-title">${t.secVariables}</h2>
         <table class="booktabs">

@@ -68,5 +68,19 @@
     "prefix": ["energy", "Emv2"],
     "body": ["# Kinetic energy: E = ½mv²", "${1:E} = 0.5 * ${2:mass} kg * (${3:velocity} m/s)^2"],
     "description": "Kinetic energy template"
+  },
+  "Document Metadata Header": {
+    "prefix": ["meta", "metadata", "header"],
+    "body": [
+      "#---",
+      "# title: ${1:Document Title}",
+      "# author: ${2:Author Name}",
+      "# institution: ${3:Institution or Department}",
+      "# date: ${4:$CURRENT_YEAR-$CURRENT_MONTH-$CURRENT_DATE}",
+      "# abstract: ${5:Brief summary of the physical computation...}",
+      "#---",
+      ""
+    ],
+    "description": "Insert document metadata frontmatter (title, author, institution, abstract)"
   }
 }
