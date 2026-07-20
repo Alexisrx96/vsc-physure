@@ -1,5 +1,3 @@
-import * as vscode from 'vscode';
-
 export type Language = 'en' | 'es';
 
 export interface Translations {
@@ -72,13 +70,28 @@ const DICTIONARY: Record<Language, Translations> = {
     },
 };
 
-export function getLanguage(documentUri?: vscode.Uri): Language {
-    const config = vscode.workspace.getConfiguration('vsc-physure', documentUri);
-    const lang = config.get<string>('language', 'en');
-    return lang === 'es' ? 'es' : 'en';
+export function getLanguage(documentUri?: any): Language {
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const vscode = require('vscode');
+        if (vscode && vscode.workspace && typeof vscode.workspace.getConfiguration === 'function') {
+            const config = vscode.workspace.getConfiguration('vsc-physure', documentUri);
+            const lang = config.get('language', 'en');
+            return lang === 'es' ? 'es' : 'en';
+        }
+    } catch {
+        // Fallback for non-vscode (unit tests)
+    }
+    return 'en';
 }
 
-export function getI18n(documentUri?: vscode.Uri): Translations {
-    const lang = getLanguage(documentUri);
+
+export function getI18n(langOrUri?: Language | any): Translations {
+    if (typeof langOrUri === 'string' && (langOrUri === 'en' || langOrUri === 'es')) {
+        return DICTIONARY[langOrUri];
+    }
+    const lang = getLanguage(langOrUri);
     return DICTIONARY[lang];
 }
+
+

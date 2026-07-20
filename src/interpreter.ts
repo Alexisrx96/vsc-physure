@@ -88,3 +88,52 @@ export function findPythonPath(activeFilePath: string | undefined): string {
     // 4. Fallback to system python3
     return 'python3';
 }
+
+/**
+ * Checks whether the `physure` Python package is importable in the specified Python interpreter.
+ */
+export function checkPhysureInstalled(pythonPath: string): Promise<boolean> {
+    return new Promise((resolve) => {
+        const { exec } = require('child_process');
+        const cmd = `"${pythonPath}" -c "import physure"`;
+        exec(cmd, (error: any) => {
+            resolve(!error);
+        });
+    });
+}
+
+/**
+ * Prompts the user to install the `physure` Python package if missing from the active interpreter environment.
+ */
+export async function promptInstallPhysureIfNeeded(pythonPath: string): Promise<void> {
+    const isInstalled = await checkPhysureInstalled(pythonPath);
+    if (isInstalled) {
+        return;
+    }
+
+    const action = await vscode.window.showWarningMessage(
+        `The 'physure' Python package is not installed in '${pythonPath}'. Would you like to install it now via pip?`,
+        'Install via Pip',
+        'Install to PATH (--user)',
+        'Select Another Interpreter'
+    );
+
+    if (action === 'Install via Pip') {
+        installPhysurePackage(pythonPath, false);
+    } else if (action === 'Install to PATH (--user)') {
+        installPhysurePackage(pythonPath, true);
+    } else if (action === 'Select Another Interpreter') {
+        vscode.commands.executeCommand('vsc-physure.selectInterpreter');
+    }
+}
+
+/**
+ * Executes pip install physure inside an integrated VS Code terminal.
+ */
+export function installPhysurePackage(pythonPath: string, userPath: boolean = false): void {
+    const terminal = vscode.window.createTerminal('Physure Pip Setup');
+    terminal.show();
+    const flag = userPath ? ' --user' : '';
+    terminal.sendText(`"${pythonPath}" -m pip install${flag} physure`);
+}
+

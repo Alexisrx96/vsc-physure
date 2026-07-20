@@ -72,6 +72,24 @@ export function registerInterpreterCommand(
             await config.update('pythonPath', chosenPath, vscode.ConfigurationTarget.Workspace);
             refreshStatusBar(statusBar, chosenPath);
             vscode.window.showInformationMessage(`Physure: interpreter set to \`${chosenPath}\``);
+            const { promptInstallPhysureIfNeeded } = require('../interpreter');
+            promptInstallPhysureIfNeeded(chosenPath);
+        }),
+        vscode.commands.registerCommand('vsc-physure.installPhysure', async () => {
+            const { findPythonPath, installPhysurePackage } = require('../interpreter');
+            const activePath = vscode.window.activeTextEditor?.document.fileName;
+            const pythonPath = findPythonPath(activePath);
+            const option = await vscode.window.showQuickPick(
+                [
+                    { label: '$(cloud-download) Install in active environment', description: 'pip install physure', userPath: false },
+                    { label: '$(terminal) Install in User PATH', description: 'pip install --user physure', userPath: true }
+                ],
+                { placeHolder: `Select installation mode for target Python: ${pythonPath}` }
+            );
+            if (option) {
+                installPhysurePackage(pythonPath, option.userPath);
+            }
         })
     );
 }
+

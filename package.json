@@ -1,7 +1,7 @@
 {
   "name": "vsc-physure",
   "displayName": "Physure (PHS) Support",
-  "description": "Syntax highlighting, live CodeLens evaluation, interactive REPL, and export tools for Physure Meta-Lang (.phs) files",
+  "description": "Native IDE support for Physure Meta-Lang (.phs). Includes live calculation evaluation, Python & Markdown export, interactive REPL, real-time preview, and automatic Python/pip environment setup.",
   "version": "0.2.1",
   "publisher": "irvintorres",
   "license": "MIT",
@@ -107,11 +107,18 @@
         "icon": "$(python)"
       },
       {
+        "command": "vsc-physure.installPhysure",
+        "title": "Physure: Install physure Python Package (pip)",
+        "category": "Physure",
+        "icon": "$(cloud-download)"
+      },
+      {
         "command": "vsc-physure.exportToPython",
         "title": "Physure: Export Current File to Python (.py)",
         "category": "Physure",
         "icon": "$(output)"
       },
+
       {
         "command": "vsc-physure.exportToMarkdown",
         "title": "Physure: Export Current File to Markdown Report (.md)",

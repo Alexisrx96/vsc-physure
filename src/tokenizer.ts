@@ -135,8 +135,19 @@ export const STANDARD_UNITS = [
     'm', 'kg', 's', 'A', 'K', 'mol', 'cd',
     // Derived SI units
     'rad', 'deg', 'sr', 'Hz', 'N', 'Pa', 'J', 'W', 'C', 'V', 'F', 'Ohm', 'S', 'Wb', 'T', 'H', 'lm', 'lx', 'Bq', 'Gy', 'Sv', 'kat',
-    // Prefixes
-    'mm', 'cm', 'dm', 'km', 'mg', 'g', 'kPa', 'MPa', 'GPa', 'mV', 'kV', 'mA', 'kW', 'MW',
+    // Common prefixed units
+    'mm', 'cm', 'dm', 'km', 'nm', 'um', 'µm', 'pm', 'fm',
+    'mg', 'g', 'kg', 't',
+    'ms', 'ns', 'us', 'µs', 'ps',
+    'kPa', 'MPa', 'GPa', 'hPa',
+    'mV', 'kV', 'MV', 'uV', 'µV', 'nV',
+    'mA', 'kA', 'uA', 'µA', 'nA',
+    'kW', 'MW', 'GW', 'mW', 'uW', 'µW', 'nW',
+    'kJ', 'MJ', 'GJ', 'mJ', 'uJ', 'µJ', 'nJ',
+    'nN', 'uN', 'µN', 'mN', 'kN', 'MN', 'GN',
+    'nC', 'uC', 'µC', 'mC', 'kC', 'pC',
+    'uF', 'µF', 'nF', 'pF', 'pF',
+    'eV', 'keV', 'MeV', 'GeV',
     // Imperial and other common units
     'in', 'ft', 'yd', 'mi', 'mil', 'inch', 'feet', 'yard', 'mile',
     'lb', 'oz', 'pound', 'ounce', 'ton',
