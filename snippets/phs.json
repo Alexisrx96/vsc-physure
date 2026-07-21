@@ -69,9 +69,15 @@
     "body": ["# Kinetic energy: E = ½mv²", "${1:E} = 0.5 * ${2:mass} kg * (${3:velocity} m/s)^2"],
     "description": "Kinetic energy template"
   },
+  "Shebang Interpreter": {
+    "prefix": ["shebang", "#!"],
+    "body": "#!/usr/bin/env phs",
+    "description": "Insert PHS shebang header line"
+  },
   "Document Metadata Header": {
     "prefix": ["meta", "metadata", "header", "@meta"],
     "body": [
+      "#!/usr/bin/env phs",
       "# @title: ${1:Document Title}",
       "# @author: ${2:Author Name}",
       "# @institution: ${3:Institution or Department}",
@@ -80,5 +86,50 @@
       ""
     ],
     "description": "Insert document directive metadata (@title, @author, @institution, @date, @abstract)"
+  },
+  "If-Else Expression": {
+    "prefix": ["if", "ifelse"],
+    "body": "if ${1:condition} then ${2:expr1} else ${3:expr2}",
+    "description": "If-else conditional expression"
+  },
+  "If-Else Block": {
+    "prefix": ["ifblock"],
+    "body": ["if ${1:condition} {", "\t${2:true_expr}", "} else {", "\t${3:false_expr}", "}"],
+    "description": "If-else conditional block"
+  },
+  "Symbolic Solve": {
+    "prefix": ["solve", "mksolve"],
+    "body": "${1:target} = solve(\"${2:lhs} = ${3:rhs}\", \"${1:target}\")",
+    "description": "Solve an equation symbolically"
+  },
+  "Vector Array": {
+    "prefix": ["arr", "vec"],
+    "body": "[${1:1}, ${2:2}, ${3:3}] ${4:m/s}",
+    "description": "Array literal with physical unit"
+  },
+  "Sigma Assertion": {
+    "prefix": ["sigma", "sigeq"],
+    "body": "${1:expr1} == ${2:expr2} +/- ${3:2} sigma",
+    "description": "Assert equality within k-sigma standard deviation bounds"
+  },
+  "Symbolic Derivative": {
+    "prefix": ["deriv", "diff"],
+    "body": "deriv(\"${1:expression}\", \"${2:variable}\")",
+    "description": "Compute symbolic derivative of expression with respect to variable"
+  },
+  "Symbolic Integral": {
+    "prefix": ["integral", "integrate"],
+    "body": "integral(\"${1:expression}\", \"${2:variable}\")",
+    "description": "Compute symbolic indefinite integral of expression"
+  },
+  "Numerical Gradient": {
+    "prefix": ["grad", "gradient"],
+    "body": "gradient(${1:y_array}, ${2:x_array})",
+    "description": "Compute numerical derivative dy/dx for vector array data"
+  },
+  "Trapezoidal Integration": {
+    "prefix": ["trapz", "area"],
+    "body": "trapz(${1:y_array}, ${2:x_array})",
+    "description": "Compute numerical integral (area under curve) for vector array data"
   }
 }

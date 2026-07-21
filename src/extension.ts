@@ -31,6 +31,7 @@ import { registerPreviewCommand } from './commands/preview';
 import { registerDependencyGraphCommand } from './commands/dependencyGraph';
 import { registerConvertUnitCommands } from './commands/convertUnit';
 
+import { registerLspClient } from './lspClient';
 import { logger } from './logger';
 
 /**
@@ -41,6 +42,9 @@ import { logger } from './logger';
 export function activate(context: vscode.ExtensionContext): void {
     logger.init(context);
     logger.info('Physure extension is now active!');
+
+    // ── Native Rust LSP Server (physure-lsp) ───────────────────────────────
+    registerLspClient(context);
 
     // ── Status Bar ────────────────────────────────────────────────────────────
     const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
@@ -94,6 +98,16 @@ export function activate(context: vscode.ExtensionContext): void {
     registerPreviewCommand(context);
     registerDependencyGraphCommand(context);
     registerConvertUnitCommands(context);
+
+    context.subscriptions.push(
+        vscode.commands.registerCommand('vsc-physure.newFile', async () => {
+            const doc = await vscode.workspace.openTextDocument({
+                language: 'phs',
+                content: '#!/usr/bin/env phs\n\n',
+            });
+            await vscode.window.showTextDocument(doc);
+        })
+    );
 
     context.subscriptions.push(
         vscode.commands.registerCommand('vsc-physure.showLogs', () => {

@@ -37,6 +37,13 @@ export const BUILTIN_FUNCTIONS: Record<string, string> = {
     exp: 'Exponential: `exp(x)`',
     log: 'Natural logarithm: `log(x)`',
     ln: 'Natural logarithm (alias): `ln(x)`',
+    solve: 'Solve equation symbolically: `solve(equation, target)`',
+    deriv: 'Symbolic derivative: `deriv(expression, variable)`',
+    diff: 'Symbolic derivative (alias): `diff(expression, variable)`',
+    integral: 'Symbolic indefinite integral: `integral(expression, variable)`',
+    integrate: 'Symbolic indefinite integral (alias): `integrate(expression, variable)`',
+    gradient: 'Numerical gradient dy/dx: `gradient(y_array, x_array)`',
+    trapz: 'Numerical trapezoidal integral: `trapz(y_array, x_array)`',
 };
 
 // Signature metadata for built-in functions (used by SignatureHelp and hover)
@@ -121,12 +128,71 @@ export const BUILTIN_SIGNATURES: Record<string, SignatureInfo> = {
         documentation: 'Natural logarithm — alias for `log(x)`.',
         parameters: [{ label: 'x', documentation: 'A positive dimensionless quantity.' }],
     },
+    solve: {
+        label: 'solve(equation, target)',
+        documentation: 'Solves an equation symbolically for the specified target variable, substituting known quantities from the environment if available.',
+        parameters: [
+            { label: 'equation', documentation: 'An equation string (e.g. "F = m * a") or equality.' },
+            { label: 'target', documentation: 'The variable name to solve for (e.g. "m").' },
+        ],
+    },
+    deriv: {
+        label: 'deriv(expression, variable)',
+        documentation: 'Differentiates a mathematical expression symbolically with respect to variable.',
+        parameters: [
+            { label: 'expression', documentation: 'Expression string to differentiate (e.g. "v0 * t + 0.5 * a * t^2").' },
+            { label: 'variable', documentation: 'Variable to differentiate with respect to (e.g. "t").' },
+        ],
+    },
+    diff: {
+        label: 'diff(expression, variable)',
+        documentation: 'Differentiates a mathematical expression symbolically — alias for `deriv`.',
+        parameters: [
+            { label: 'expression', documentation: 'Expression string to differentiate.' },
+            { label: 'variable', documentation: 'Variable to differentiate with respect to.' },
+        ],
+    },
+    integral: {
+        label: 'integral(expression, variable)',
+        documentation: 'Computes the indefinite integral of an expression symbolically with respect to variable.',
+        parameters: [
+            { label: 'expression', documentation: 'Expression string to integrate (e.g. "3 * t^2").' },
+            { label: 'variable', documentation: 'Variable of integration (e.g. "t").' },
+        ],
+    },
+    integrate: {
+        label: 'integrate(expression, variable)',
+        documentation: 'Computes indefinite integral — alias for `integral`.',
+        parameters: [
+            { label: 'expression', documentation: 'Expression string to integrate.' },
+            { label: 'variable', documentation: 'Variable of integration.' },
+        ],
+    },
+    gradient: {
+        label: 'gradient(y_array, x_array)',
+        documentation: 'Computes numerical derivative dy/dx across vector arrays, preserving physical units (e.g. m / s).',
+        parameters: [
+            { label: 'y_array', documentation: 'Dependent variable vector array (e.g. position).' },
+            { label: 'x_array', documentation: 'Independent variable vector array (e.g. time).' },
+        ],
+    },
+    trapz: {
+        label: 'trapz(y_array, x_array)',
+        documentation: 'Computes numerical integration (area under curve) across vector arrays using trapezoidal rule, preserving physical units (e.g. N * m -> J).',
+        parameters: [
+            { label: 'y_array', documentation: 'Integrand vector array (e.g. force).' },
+            { label: 'x_array', documentation: 'Variable of integration vector array (e.g. displacement).' },
+        ],
+    },
 };
 
 // Reserved structural keywords
 export const KEYWORDS: Record<string, string> = {
     let: 'Local binding construct: `let var = expr1 in expr2` (valid inside function bodies)',
     in: 'Local scoping keyword: `let var = expr1 in expr2` (also resolves as inches outside let expressions)',
+    if: 'Conditional expression: `if cond then expr1 else expr2` or `if cond { expr1 } else { expr2 }`',
+    then: 'Conditional then branch',
+    else: 'Conditional else branch',
 };
 
 // List of common physical units for autocomplete suggestions and hover lookup
@@ -186,7 +252,7 @@ export function parseUnitListJson(stdout: string): string[] {
 
 // Regex mapping token groups from the grammar, supporting Unicode letters, Greek symbols,
 // subscripts, square roots, operators, and reaction arrows.
-const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE]\s*[+-]?\s*\d+)?|\.\d+(?:[eE]\s*[+-]?\s*\d+)?)|(?<IDENT>[\p{L}_][\p{L}\p{N}_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<SUB>[₀₁₂₃₄₅₆₇₈₉₋]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|<=|>=|!=|==|=>|->|≈|\*\s*\*|\*\*|<|>|⇌|×|÷|√|,|:|\|)|(?<WS>[ \t]+)|(?<BAD>.)/gu;
+const TOKEN_RE = /(?<NUMBER>\d+\.?\d*(?:[eE]\s*[+-]?\s*\d+)?|\.\d+(?:[eE]\s*[+-]?\s*\d+)?)|(?<STRING>"[^"]*"|'[^']*')|(?<IDENT>[\p{L}_][\p{L}\p{N}_]*)|(?<SUP>[⁻⁰¹²³⁴⁵⁶⁷⁸⁹]+)|(?<SUB>[₀₁₂₃₄₅₆₇₈₉₋]+)|(?<OP>\+|-|\*|\/|\^|\(|\)|=|\?|\+\/-|±|<=|>=|!=|==|=>|->|≈|\*\s*\*|\*\*|<|>|⇌|×|÷|√|,|:|\||\[|\]|\{|\})|(?<WS>[ \t]+)|(?<BAD>.)/gu;
 
 
 /**

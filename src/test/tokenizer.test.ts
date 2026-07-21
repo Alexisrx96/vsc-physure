@@ -209,5 +209,19 @@ test('formatDocument: preserves and formats scientific notation numbers without 
     assert.equal(formatDocument(unformatted, { indentSpaces: 4 }), expected);
 });
 
+test('computeDiagnostics: new PHS syntax features produce no diagnostics', () => {
+    const code = [
+        'v = [1, 2, 3] m/s',
+        'val = if 3 > 2 then 10 else 20',
+        'g = 9.81 +/- 0.05 m/s^2',
+        'assert_g = g == 9.80 m/s^2 +/- 2 sigma',
+        'm = solve("force = m * a", "m")',
+        'd = deriv("v0 * t + 0.5 * a * t^2", "t")',
+        'i = integral("3 * t^2", "t")'
+    ].join('\n');
+    const diagnostics = computeDiagnostics(code);
+    assert.deepEqual(diagnostics, []);
+});
+
 
 

@@ -93,7 +93,7 @@
       "patterns": [
         {
           "name": "keyword.control.phs",
-          "match": "\\b(let|in)\\b"
+          "match": "\\b(let|in|if|then|else)\\b"
         }
       ]
     },
@@ -101,7 +101,7 @@
       "patterns": [
         {
           "name": "support.function.builtin.phs",
-          "match": "\\b(abs|round|floor|ceil|min|max|sqrt|sin|cos|tan|exp|log|ln|linspace|plot)\\b(?=\\s*\\()"
+          "match": "\\b(abs|round|floor|ceil|min|max|sqrt|sin|cos|tan|exp|log|ln|linspace|plot|solve|deriv|diff|integral|integrate|gradient|trapz)\\b(?=\\s*\\()"
         }
       ]
     },
@@ -147,7 +147,7 @@
       "patterns": [
         {
           "name": "keyword.operator.uncertainty.phs",
-          "match": "\\+/-|±"
+          "match": "\\+/-|±|\\b(sigma|σ)\\b"
         }
       ]
     },

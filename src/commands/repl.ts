@@ -1,5 +1,5 @@
 import * as vscode from 'vscode';
-import { findPythonPath } from '../interpreter';
+import { findPhsBinary, findPythonPath } from '../interpreter';
 
 /**
  * Sends `text` to `terminal` once shell integration fires, with a 1-second
@@ -31,11 +31,17 @@ function findReplTerminal(): vscode.Terminal | undefined {
 }
 
 /** Opens a new REPL terminal and starts the physure session. */
-function openNewRepl(pythonPath: string): vscode.Terminal {
+function openNewRepl(activeFilePath: string | undefined): vscode.Terminal {
     const terminal = vscode.window.createTerminal({ name: 'Physure REPL' });
     terminal.show();
     const q = (p: string) => (p.includes(' ') ? `"${p}"` : p);
-    terminal.sendText(`${q(pythonPath)} -m physure`);
+    const phsPath = findPhsBinary(activeFilePath);
+    if (phsPath) {
+        terminal.sendText(`${q(phsPath)}`);
+    } else {
+        const pythonPath = findPythonPath(activeFilePath);
+        terminal.sendText(`${q(pythonPath)} -m physure`);
+    }
     return terminal;
 }
 
@@ -51,13 +57,13 @@ export function registerReplCommands(context: vscode.ExtensionContext): void {
     context.subscriptions.push(
         vscode.commands.registerCommand('vsc-physure.openRepl', () => {
             const editor = vscode.window.activeTextEditor;
-            const pythonPath = findPythonPath(editor?.document.uri.fsPath);
+            const filePath = editor?.document.uri.fsPath;
 
             const existing = findReplTerminal();
             if (existing) {
                 existing.show();
             } else {
-                openNewRepl(pythonPath);
+                openNewRepl(filePath);
             }
         })
     );
@@ -89,14 +95,14 @@ export function registerReplCommands(context: vscode.ExtensionContext): void {
                 return;
             }
 
-            const pythonPath = findPythonPath(document.uri.fsPath);
+            const filePath = document.uri.fsPath;
             const existing = findReplTerminal();
 
             if (existing) {
                 existing.show();
                 existing.sendText(textToSend);
             } else {
-                const terminal = openNewRepl(pythonPath);
+                const terminal = openNewRepl(filePath);
                 sendTextWhenReady(terminal, textToSend);
             }
         })
@@ -108,8 +114,8 @@ export function registerReplCommands(context: vscode.ExtensionContext): void {
             findReplTerminal()?.dispose();
 
             const editor = vscode.window.activeTextEditor;
-            const pythonPath = findPythonPath(editor?.document.uri.fsPath);
-            openNewRepl(pythonPath);
+            const filePath = editor?.document.uri.fsPath;
+            openNewRepl(filePath);
         })
     );
 }

@@ -191,9 +191,27 @@ export function expressionToLatex(expr: string): string | undefined {
     s = s.replace(/:\s*(?:base|alias|frac|\.\d+[fe])$/, '').replace(/=>\s*[A-Za-z_]+$/, '');
 
     // Must contain math operators or assignments or math function calls
-    const hasMathOp = /[=+\-*/^><±√≈]|sqrt|frac|\b(?:sin|cos|tan|log|exp|round|abs|min|max)\b/.test(s);
+    const hasMathOp = /[=+\-*/^><±√≈]|sqrt|frac|\b(?:sin|cos|tan|log|exp|round|abs|min|max|solve|deriv|diff|integral|integrate|gradient|trapz|if|then|else|sigma|σ)\b/.test(s);
     if (!hasMathOp) {
         return undefined;
+    }
+
+    // PHS IF / THEN / ELSE EXPRESSION: if cond then val1 else val2
+    if (/\bif\b.*\bthen\b.*\belse\b/.test(s)) {
+        const ifMatch = /^(.*?)\s*\bif\b\s+(.*?)\s+\bthen\b\s+(.*?)\s+\belse\b\s+(.*)$/.exec(s);
+        if (ifMatch) {
+            const lhs = ifMatch[1].trim();
+            const cond = ifMatch[2].trim();
+            const val1 = ifMatch[3].trim();
+            const val2 = ifMatch[4].trim();
+
+            const lhsLatex = lhs ? (expressionToLatex(lhs) ?? lhs) + ' ' : '';
+            const condLatex = expressionToLatex(cond) ?? cond;
+            const val1Latex = expressionToLatex(val1) ?? val1;
+            const val2Latex = expressionToLatex(val2) ?? val2;
+
+            return `${lhsLatex}\\begin{cases} ${val1Latex} & \\text{if } ${condLatex} \\\\ ${val2Latex} & \\text{otherwise} \\end{cases}`;
+        }
     }
 
     // TERNARY OPERATOR: cond ? val1 : val2 -> \begin{cases} val1 & \text{if } cond \\ val2 & \text{otherwise} \end{cases}
@@ -207,15 +225,47 @@ export function expressionToLatex(expr: string): string | undefined {
         }
     }
 
+    // Calculus & Solver functions: deriv("expr", "t"), integral("expr", "x"), etc.
+    s = s.replace(/\b(?:deriv|diff)\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/g, (m, exprInner, varName) => {
+        const innerL = expressionToLatex(exprInner) ?? exprInner;
+        const varL = expressionToLatex(varName) ?? varName;
+        return `\\frac{d}{d ${varL}}\\left(${innerL}\\right)`;
+    });
+
+    s = s.replace(/\b(?:integral|integrate)\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/g, (m, exprInner, varName) => {
+        const innerL = expressionToLatex(exprInner) ?? exprInner;
+        const varL = expressionToLatex(varName) ?? varName;
+        return `\\int \\left(${innerL}\\right) d${varL}`;
+    });
+
+    s = s.replace(/\bgradient\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, (m, y, x) => {
+        const yL = expressionToLatex(y.trim()) ?? y.trim();
+        const xL = expressionToLatex(x.trim()) ?? x.trim();
+        return `\\frac{d ${yL}}{d ${xL}}`;
+    });
+
+    s = s.replace(/\btrapz\(\s*([^,]+)\s*,\s*([^)]+)\s*\)/g, (m, y, x) => {
+        const yL = expressionToLatex(y.trim()) ?? y.trim();
+        const xL = expressionToLatex(x.trim()) ?? x.trim();
+        return `\\int ${yL} \\, d${xL}`;
+    });
+
+    s = s.replace(/\bsolve\(\s*"([^"]+)"\s*,\s*"([^"]+)"\s*\)/g, (m, eq, target) => {
+        const eqL = expressionToLatex(eq.trim()) ?? eq.trim();
+        const targetL = expressionToLatex(target.trim()) ?? target.trim();
+        return `\\text{solve}\\left(${eqL}, \\; ${targetL}\\right)`;
+    });
+
     // FIRST: Convert => to \rightarrow
     s = s.replace(/=>/g, ' \\rightarrow ');
 
     // SECOND: Exponents ** -> ^
     s = s.replace(/\*\s*\*/g, '^');
 
-    // THIRD: Convert uncertainties +/- or ± -> \pm and ≈ -> \approx
+    // THIRD: Convert uncertainties +/- or ± -> \pm, ≈ -> \approx, sigma -> \sigma
     s = s.replace(/\+\/-\s*|\s*±\s*/g, ' \\pm ');
     s = s.replace(/≈/g, ' \\approx ');
+    s = s.replace(/\b(?:sigma|σ)\b/g, '\\sigma');
 
     // FOURTH: Convert functions like sqrt(...) and round(...)
     s = s.replace(/sqrt\((.*)\)/g, '\\sqrt{$1}');
@@ -239,6 +289,9 @@ export function expressionToLatex(expr: string): string | undefined {
 
     // TENTH: Wrap multi-letter identifiers containing underscores in \text{...}
     s = s.replace(/\b[A-Za-z_][A-Za-z0-9_]*\b/g, (word) => {
+        if (word === 'if' || word === 'then' || word === 'else') {
+            return `\\text{${word}}`;
+        }
         if (word.includes('_')) {
             const escaped = word.replace(/_/g, '\\_');
             return `\\text{${escaped}}`;
@@ -250,6 +303,7 @@ export function expressionToLatex(expr: string): string | undefined {
     s = s.replace(/\\text\{\\pi\}/g, '\\pi');
     s = s.replace(/\\text\{\\sqrt\}/g, '\\sqrt');
     s = s.replace(/\\text\{\\frac\}/g, '\\frac');
+    s = s.replace(/\\text\{\\sigma\}/g, '\\sigma');
     s = s.replace(/\\text\{\\varepsilon\\_0\}/g, '\\varepsilon_0');
 
     return s;

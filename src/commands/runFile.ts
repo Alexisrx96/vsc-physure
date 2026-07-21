@@ -1,11 +1,11 @@
 import * as vscode from 'vscode';
-import { findPythonPath } from '../interpreter';
+import { findPhsBinary, findPythonPath } from '../interpreter';
 
 /**
  * Registers the `vsc-physure.runFile` command.
  *
- * Saves the active document if dirty, then pipes it to the Physure
- * interpreter via stdin (`python -m physure < file.phs`).
+ * Saves the active document if dirty, then executes it via the native Rust `phs`
+ * binary or fallback Python interpreter (`python -m physure file.phs`).
  * Reuses an existing "Physure Runner" terminal if one is already open.
  */
 export function registerRunFileCommand(context: vscode.ExtensionContext): void {
@@ -23,6 +23,7 @@ export function registerRunFileCommand(context: vscode.ExtensionContext): void {
             }
 
             const filePath = document.uri.fsPath;
+            const phsPath = findPhsBinary(filePath);
             const pythonPath = findPythonPath(filePath);
 
             let terminal = vscode.window.terminals.find(t => t.name === 'Physure Runner');
@@ -33,7 +34,11 @@ export function registerRunFileCommand(context: vscode.ExtensionContext): void {
             terminal.show();
 
             const q = (p: string) => (p.includes(' ') ? `"${p}"` : p);
-            terminal.sendText(`${q(pythonPath)} -m physure < ${q(filePath)}`);
+            if (phsPath) {
+                terminal.sendText(`${q(phsPath)} ${q(filePath)}`);
+            } else {
+                terminal.sendText(`${q(pythonPath)} -m physure ${q(filePath)}`);
+            }
         })
     );
 }

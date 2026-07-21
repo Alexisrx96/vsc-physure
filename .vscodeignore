@@ -4,10 +4,15 @@
 .claude/**
 docs/**
 src/**
-out/test/**
 node_modules/**
+out/commands/**
+out/providers/**
+out/test/**
+out/*.js
+!out/extension.js
 *.vsix
 out/*.map
 .gitignore
 .vscodeignore
 tsconfig.json
+esbuild.js

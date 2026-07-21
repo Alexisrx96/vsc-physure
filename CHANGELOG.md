@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.2] - 2026-07-20
+
+### Added
+- Native standalone Rust `phs` binary launcher for `runFile` and `openRepl` commands.
+- `vsc-physure.newFile` command ("Physure: New PHS File") with `#!/usr/bin/env phs` shebang template.
+- FirstLine regex pattern (`^#!.*\bphs\b`) to auto-detect PHS shebang scripts.
+- Added `vsc-physure.phsBinaryPath` configuration setting.
+- Native Rust PHS engine support and integration with `phs` standalone binary CLI for sub-millisecond document evaluations.
+- Real-time PHS diagnostics and completion items accelerated by `physure-lsp` Rust server.
+
+### Changed
+- Direct execution of `.phs` script files (`python -m physure file.phs`) without shell redirection for improved cross-platform and Windows terminal compatibility.
+
 ## [0.2.0] - 2026-07-18
 
 ### Added

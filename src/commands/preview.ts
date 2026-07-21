@@ -214,7 +214,8 @@ function buildNativeLivePreviewHtml(document: vscode.TextDocument): string {
                 if (output.includes('Error') || output.includes('Mismatch')) {
                     evalResultHtml = `<div class="native-res-pill res-error">❌ ${escapeHtml(output)}</div>`;
                 } else {
-                    evalResultHtml = `<div class="native-res-pill res-success">&rArr; ${escapeHtml(output)}</div>`;
+                    const cleanPill = formatResultDisplay(output);
+                    evalResultHtml = `<div class="native-res-pill res-success">&rArr; ${escapeHtml(cleanPill)}</div>`;
                 }
             }
 
@@ -1016,6 +1017,24 @@ function formatUnitLatex(unitStr: string): string {
     return u;
 }
 
+function formatResultDisplay(raw: string): string {
+    let s = raw.trim();
+    if (!s) {
+        return '';
+    }
+    // Format SymPy exponents: t**3 -> t³ or t^3
+    s = s.replace(/(\b[A-Za-z0-9_]+\b|\([^)]+\))\*\*\s*([0-9]+)/g, (m, b, exp) => {
+        const sups: Record<string, string> = { '0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴', '5': '⁵', '6': '⁶', '7': '⁷', '8': '⁸', '9': '⁹' };
+        const supStr = String(exp).split('').map((c) => sups[c] || c).join('');
+        return `${b}${supStr}`;
+    });
+    s = s.replace(/\*\*/g, '^');
+    // Format multiplication: 1.0*a*t -> 1.0 · a · t
+    s = s.replace(/(\w|\))(?:\s*\*\s*)(\w|\()/g, '$1 · $2');
+    s = s.replace(/\*/g, ' · ');
+    return s;
+}
+
 function formatResultLatex(outStr: string): string {
     let raw = outStr.replace(/[{}]/g, '').trim();
     if (!raw) {
@@ -1057,6 +1076,12 @@ function formatResultLatex(outStr: string): string {
             return `\\quad \\implies \\mathbf{${val}\\; ${formattedUnit}}`;
         }
         return `\\quad \\implies \\mathbf{${val}}`;
+    }
+
+    // Check if output is a mathematical expression (e.g. "1.0*a*t + v0" or "t**3")
+    const mathLatex = expressionToLatex(raw);
+    if (mathLatex) {
+        return `\\quad \\implies \\mathbf{${mathLatex}}`;
     }
 
     return `\\quad \\implies \\mathbf{\\text{${raw.replace(/_/g, '\\_')}}}`;

@@ -137,3 +137,51 @@ export function installPhysurePackage(pythonPath: string, userPath: boolean = fa
     terminal.sendText(`"${pythonPath}" -m pip install${flag} physure`);
 }
 
+/**
+ * Searches for the native standalone `phs` Rust binary executable.
+ */
+export function findPhsBinary(activeFilePath: string | undefined): string | undefined {
+    const config = vscode.workspace.getConfiguration('vsc-physure');
+    const configuredPath = config.get<string>('phsBinaryPath');
+    if (configuredPath) {
+        let rootPath = '';
+        const folders = vscode.workspace.workspaceFolders;
+        if (folders && folders.length > 0) {
+            const activeUri = activeFilePath ? vscode.Uri.file(activeFilePath) : undefined;
+            const targetFolder = (activeUri ? vscode.workspace.getWorkspaceFolder(activeUri) : undefined) ?? folders[0];
+            rootPath = targetFolder.uri.fsPath;
+        }
+        const resolved = configuredPath.replace(/\$\{workspaceFolder\}/g, rootPath);
+        if (fs.existsSync(resolved)) {
+            return resolved;
+        }
+    }
+
+    const folders = vscode.workspace.workspaceFolders;
+    if (folders) {
+        for (const folder of folders) {
+            const root = folder.uri.fsPath;
+            const candidates = [
+                path.join(root, 'target', 'release', 'phs'),
+                path.join(root, 'target', 'debug', 'phs'),
+                path.join(root, 'physure-core', 'target', 'release', 'phs'),
+                path.join(root, 'physure-core', 'target', 'debug', 'phs'),
+                path.join(root, '.venv', 'bin', 'phs'),
+            ];
+            for (const c of candidates) {
+                if (fs.existsSync(c)) {
+                    return c;
+                }
+            }
+        }
+    }
+
+    const { spawnSync } = require('child_process');
+    const which = spawnSync('which', ['phs']).stdout?.toString().trim();
+    if (which && fs.existsSync(which)) {
+        return which;
+    }
+
+    return undefined;
+}
+
