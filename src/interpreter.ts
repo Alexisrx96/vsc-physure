@@ -1,6 +1,7 @@
 import * as vscode from 'vscode';
 import * as path from 'path';
 import * as fs from 'fs';
+import * as os from 'os';
 
 /**
  * Searches for the Python interpreter containing the physure package.
@@ -141,6 +142,9 @@ export function installPhysurePackage(pythonPath: string, userPath: boolean = fa
  * Searches for the native standalone `phs` Rust binary executable.
  */
 export function findPhsBinary(activeFilePath: string | undefined): string | undefined {
+    const isWin = process.platform === 'win32';
+    const exe = isWin ? '.exe' : '';
+
     const config = vscode.workspace.getConfiguration('vsc-physure');
     const configuredPath = config.get<string>('phsBinaryPath');
     if (configuredPath) {
@@ -162,11 +166,11 @@ export function findPhsBinary(activeFilePath: string | undefined): string | unde
         for (const folder of folders) {
             const root = folder.uri.fsPath;
             const candidates = [
-                path.join(root, 'target', 'release', 'phs'),
-                path.join(root, 'target', 'debug', 'phs'),
-                path.join(root, 'physure-core', 'target', 'release', 'phs'),
-                path.join(root, 'physure-core', 'target', 'debug', 'phs'),
-                path.join(root, '.venv', 'bin', 'phs'),
+                path.join(root, 'target', 'release', `phs${exe}`),
+                path.join(root, 'target', 'debug', `phs${exe}`),
+                path.join(root, 'physure-core', 'target', 'release', `phs${exe}`),
+                path.join(root, 'physure-core', 'target', 'debug', `phs${exe}`),
+                path.join(root, '.venv', isWin ? 'Scripts' : 'bin', `phs${exe}`),
             ];
             for (const c of candidates) {
                 if (fs.existsSync(c)) {
@@ -176,8 +180,15 @@ export function findPhsBinary(activeFilePath: string | undefined): string | unde
         }
     }
 
+    const cargoBinPath = path.join(os.homedir(), '.cargo', 'bin', `phs${exe}`);
+    if (fs.existsSync(cargoBinPath)) {
+        return cargoBinPath;
+    }
+
     const { spawnSync } = require('child_process');
-    const which = spawnSync('which', ['phs']).stdout?.toString().trim();
+    const lookupCmd = isWin ? 'where' : 'which';
+    const stdout = spawnSync(lookupCmd, ['phs']).stdout?.toString().trim();
+    const which = stdout?.split(/\r?\n/)[0];
     if (which && fs.existsSync(which)) {
         return which;
     }

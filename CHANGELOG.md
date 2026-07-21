@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.2.3] - 2026-07-20
+
+### Fixed
+- `phs` binary and `physure-lsp` server detection now append `.exe` on Windows and check `~/.cargo/bin`, so a `cargo install`-ed native binary is found even outside a Cargo workspace folder.
+- Interpreter/binary lookup fallback now uses `where` on Windows instead of the POSIX-only `which`, which previously failed silently.
+
 ## [0.2.2] - 2026-07-20
 
 ### Added

@@ -76,20 +76,22 @@ function resolveLspPath(configuredPath: string): string | undefined {
         return configuredPath;
     }
 
+    const exe = process.platform === 'win32' ? '.exe' : '';
+
     if (vscode.workspace.workspaceFolders) {
         for (const folder of vscode.workspace.workspaceFolders) {
-            const releasePath = path.join(folder.uri.fsPath, 'target', 'release', 'physure-lsp');
+            const releasePath = path.join(folder.uri.fsPath, 'target', 'release', `physure-lsp${exe}`);
             if (fs.existsSync(releasePath)) {
                 return releasePath;
             }
-            const debugPath = path.join(folder.uri.fsPath, 'target', 'debug', 'physure-lsp');
+            const debugPath = path.join(folder.uri.fsPath, 'target', 'debug', `physure-lsp${exe}`);
             if (fs.existsSync(debugPath)) {
                 return debugPath;
             }
         }
     }
 
-    const cargoBinPath = path.join(os.homedir(), '.cargo', 'bin', 'physure-lsp');
+    const cargoBinPath = path.join(os.homedir(), '.cargo', 'bin', `physure-lsp${exe}`);
     if (fs.existsSync(cargoBinPath)) {
         return cargoBinPath;
     }

@@ -2,7 +2,7 @@
   "name": "vsc-physure",
   "displayName": "Physure (PHS) Support",
   "description": "Native IDE support for Physure Meta-Lang (.phs). Includes live calculation evaluation, Python & Markdown export, interactive REPL, real-time preview, and automatic Python/pip environment setup.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "irvintorres",
   "license": "MIT",
   "icon": "images/icon.png",
